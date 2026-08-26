@@ -9,6 +9,12 @@
 
 dsh-mermaid 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插件：会话输入框工具行点「流程图」唤起画板，绘制流程节点与箭头，画布**实时翻译为标准 Mermaid 代码**——带主题/方向/间距配置的 `flowchart` 图，可复制、可在插件内渲染预览（渲染器内置，离线可用）、可一键插入会话输入框随需求发给 agent。
 
+## 📸 产品预览
+
+<p align="center">
+  <img src="view.png" alt="dsh-mermaid 产品预览：Mermaid 流程图画布 + 形状面板 + 画布历史" />
+</p>
+
 ---
 
 ## ✨ 特性
