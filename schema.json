@@ -1,0 +1,72 @@
+{
+  "$schema": "https://mermaid.js.org/schema/",
+  "title": "dsh-mermaid CanvasFile 数据契约",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "name", "x", "y", "w", "h", "direction", "config"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "enum": ["flowchart", "sequence", "class", "state", "er", "gantt", "pie", "journey", "mindmap", "timeline", "sankey", "quadrantChart", "gitGraph", "kanban", "packet", "requirement"] },
+          "name": { "type": "string" },
+          "x": { "type": "number" }, "y": { "type": "number" },
+          "w": { "type": "number" }, "h": { "type": "number" },
+          "direction": { "enum": ["TD", "TB", "BT", "LR", "RL"] },
+          "config": { "type": "object" }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "pageId", "shape", "x", "y", "w", "h", "text"],
+        "properties": {
+          "id": { "type": "string" },
+          "pageId": { "type": "string" },
+          "shape": { "enum": ["rectangle", "rounded", "stadium", "subroutine", "cylinder", "circle", "doubleCircle", "asymmetric", "diamond", "hexagon", "parallelogram", "parallelogramAlt", "trapezoid", "trapezoidAlt"] },
+          "x": { "type": "number" }, "y": { "type": "number" },
+          "w": { "type": "number" }, "h": { "type": "number" },
+          "text": { "type": "string" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "pageId", "from", "to", "fromAnchor", "toAnchor", "label", "kind"],
+        "properties": {
+          "id": { "type": "string" },
+          "pageId": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "fromAnchor": { "$ref": "#/definitions/anchor" },
+          "toAnchor": { "$ref": "#/definitions/anchor" },
+          "label": { "type": "string" },
+          "kind": { "enum": ["solid", "dotted", "thick", "open"] }
+        }
+      }
+    },
+    "config": { "type": "object" },
+    "meta": { "type": "object" }
+  },
+  "definitions": {
+    "anchor": {
+      "type": "object",
+      "required": ["side", "t"],
+      "properties": {
+        "side": { "enum": ["l", "r", "t", "b"] },
+        "t": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}
