@@ -5,6 +5,7 @@
 > 画布是输入方式，**Mermaid 代码是唯一产物**（一等公民：任何画布状态恒产出可解析的标准代码，不发明私有扩展）。
 
 [![v0.1.0](https://img.shields.io/badge/version-v0.1.0-2f6feb)](https://github.com/frankzhan-git/dsh-mermaid)
+[![verify](https://github.com/frankzhan-git/dsh-mermaid/actions/workflows/verify.yml/badge.svg)](https://github.com/frankzhan-git/dsh-mermaid/actions/workflows/verify.yml)
 
 dsh-mermaid 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插件：会话输入框工具行点「流程图」唤起画板，绘制流程节点与箭头，画布**实时翻译为标准 Mermaid 代码**——带主题/方向/间距配置的 `flowchart` 图，可复制、可在插件内渲染预览（渲染器内置，离线可用）、可一键插入会话输入框随需求发给 agent。
 
