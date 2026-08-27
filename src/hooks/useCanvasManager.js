@@ -120,6 +120,22 @@ export function useCanvasManager(deps) {
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
   })
 
+  // 跨实例可见性（v0.2.6）：多实例（:3080/:3090）无跨进程事件推送，
+  // 弹窗打开期间轻量轮询列表 + 页面聚焦/切回时刷新——对面新增/删除/改名自动出现
+  React.useEffect(() => {
+    if (!open) return
+    const timer = setInterval(() => { refreshDocs() }, 4000)
+    const onFocus = () => { refreshDocs() }
+    const onVis = () => { if (document.visibilityState === 'visible') refreshDocs() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [open, refreshDocs])
+
   React.useEffect(() => {
     storeRef.current = defaultStore()
     refreshDocs()
