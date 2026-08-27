@@ -4,7 +4,7 @@
 >
 > 画布是输入方式，**Mermaid 代码是唯一产物**（一等公民：任何画布状态恒产出可解析的标准代码，不发明私有扩展）。
 
-[![v0.2.1](https://img.shields.io/badge/version-v0.2.1-2f6feb)](https://github.com/frankzhan-git/dsh-flowchart)
+[![v0.2.4](https://img.shields.io/badge/version-v0.2.4-2f6feb)](https://github.com/frankzhan-git/dsh-flowchart)
 [![verify](https://github.com/frankzhan-git/dsh-flowchart/actions/workflows/verify.yml/badge.svg)](https://github.com/frankzhan-git/dsh-flowchart/actions/workflows/verify.yml)
 
 dsh-flowchart 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插件：会话输入框工具行点「流程图」唤起画板，绘制流程节点与箭头，画布**实时翻译为标准 Mermaid 代码**——带主题/方向/间距配置的 `flowchart` 图，可复制、可在插件内渲染预览（渲染器内置，离线可用）、可一键插入会话输入框随需求发给 agent。
@@ -30,6 +30,7 @@ dsh-flowchart 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式�
 - **两个预览浮窗**（画布右上角按钮，画布内浮窗 + 可多页切换）：Mermaid 代码（复制全部）、渲染预览（内置 mermaid 渲染器）
 - **插入会话**：引导语 + ```mermaid 代码块（可切「仅代码」档），`inputActions.setDraft` 写入草稿
 - **实时落盘（严谨目录管理）**：800ms 防抖自动保存 → `~/.dsh/storages/dsh-flowchart/`（命名空间清单 `MANIFEST.json` + `canvases/{id}.json` 每画布原子写、`.corrupt` 损坏隔离、临时文件启动清扫、meta 缓存）；不污染 storages 顶层；无宿主存储自动降级 localStorage
+- **多实例互通**：数据存储「每画布单文件 + 每次操作实时磁盘读」——同一 `DSH_HOME` 下的多个 DSH 实例（如 :3080/:3090 双端口）共享 `~/.dsh/storages/`，刷新即互见、写入互不覆盖（官方 storageDomain 为进程内存态，实测不支持跨实例实时可见，故不采用）
 - **画布历史**：右栏（设置 + 历史两区，同 dsh-wf）：最近打开 / 新建 / 重命名 / 删除（二次确认）/ 导出 / 导入
 - **类型扩展**：页面类型注册表预留（时序/类图/状态图/ER/甘特/饼/旅行/思维导图/时间线/桑基/象限/Git/看板/通讯/需求 16 种，v1 置灰提示）
 

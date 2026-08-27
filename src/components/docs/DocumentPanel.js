@@ -18,7 +18,7 @@ function fmtDate(iso) {
 }
 
 export function DocumentPanel(props) {
-  const { docs, currentId, onLoad, onDelete, onRename, onExport, onImport, height } = props
+  const { docs, currentId, onLoad, onDelete, onRename, onExport, onImport, height, storeMode, storeErr } = props
   // 删除行内二次确认（纯 UI 状态）：超时自动恢复
   const [confirmId, setConfirmId] = React.useState(null)
   const confirmTimer = React.useRef(null)
@@ -117,5 +117,10 @@ export function DocumentPanel(props) {
           )),
         )
       : el('div', { className: 'mm-history-empty' }, '绘制内容将自动保存到这里，点击可随时载入；支持导出/导入备份'),
+    // 存储模式可见性（防静默）：宿主磁盘（跨端口共享）或浏览器本地（按端口隔离，不跨端口）
+    storeMode === 'localStorage' ? el('div', { className: 'mm-store-note' },
+      '数据存储在浏览器本地（宿主存储未连接' + (storeErr ? '：' + String(storeErr).slice(0, 120) : '')
+      + '）——图无法跨端口共享；可导出备份后导入',
+    ) : null,
   )
 }

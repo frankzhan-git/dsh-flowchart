@@ -384,7 +384,7 @@ export function useCanvasInteractions(deps) {
     : (hoverCursor || (mode === 'draw' ? 'crosshair' : 'default'))
 
   return {
-    zoom, pan, setZoom, setPan, drag, snapLines, spaceDown, fullscreen, setFullscreen,
+    zoom, pan, setZoom, setPan, drag, snapLines, setSnapLines, spaceDown, fullscreen, setFullscreen,
     canvasCursor, hoverAnchor, onMouseDown, onMouseMove, onMouseUp: endDrag, onMouseLeave: endDrag,
   }
 }

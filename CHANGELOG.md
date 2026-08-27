@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.4 (2026) — 存储管线贯通 + 官方范式重构
+
+- **fix(新建崩溃)**：`useCanvasInteractions` 返回对象缺失 `setSnapLines`，导致「新建画布」即刻 TypeError（任何存储调用之前）——补齐导出。
+- **fix(线协议调用形态)**：客户端按 rc.2 网关**位置参数范式**直调命名空间服务（`ns.listMeta(q)` / `ns.saveBody(id, patch)`）；此前传单对象导致 `getMeta`/`loadBody`/`saveBody` 的 zod 参数解码失败，`listMeta` 靠 strip 侥幸通过——「列表可见但点不开」的根因。
+- **fix(宿主契约)**：`saveMeta`/`saveBody` 补齐 `return ok()`（网关结果边界校验）；`removeCanvas`（`implementation: remove`）经网关别名验证。
+- **refactor(客户端)**：移除 `createDomainRemote` 适配层，`domainAdapter(ns)` 按官方消费范式（驻扎插件注入 `remote.flowchartStorage`）直调命名空间。
+- **refactor(宿主)**：`typertRemote` 绑定内聚到服务自身（`createFlowchartService` 构造时完成）；`@deepseek-ai/dsh-typert-protocol` 升级 `0.1.0-rc.7 → 0.1.1-rc.2` 与运行时网关对齐。
+- **feat(多实例)**：数据存储保持「每画布单文件 + 每次操作实时磁盘读」——经实证该设计天然支撑双 DSH 实例（:3080/:3090）共享 `~/.dsh/storages/` 的实时互通（官方 storageDomain 内存态实测无法支撑，架构决策已文档化于服务头部）。
+- **chore**：verify 套件 8 项全绿 + 新增 `scripts/verify-live-gateway.mjs`（真实 TypertRegistry/Gateway 网关级预验证）。
+- **发布**：dsh-flowchart@0.2.4
+
 ## 0.2.2 (2026) — 全面改名 dsh-flowchart + 数据迁移
 
 - **命名统一**：源码/文档所有 `dsh-mermaid` 标识改为 `dsh-flowchart`——插件行 id、插件 `name`、线协议描述符（`dsh-flowchart#flowchartStorage/*`）、服务名 `flowchartStorage`、远程贡献名、存储命名空间、localStorage 键前缀、error 文案；组件文件同步改名（FlowchartModal/FlowchartButton/flowchart-service）

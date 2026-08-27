@@ -1,24 +1,7 @@
-// dsh-flowchart core/storage/remote.js —— 官方 @Remote 网关接入（P6 适配层）
-// descriptors 与宿主 typert.host.js 的 invocations 共用单一来源（lib/wire.js）
-// 信封：remote.flowchartStorage.* 返回载体层 { ok, value }；value 为业务层 { ok, ... } | { ok:false, error }
+// dsh-flowchart core/storage/remote.js —— 客户端 Remote 贡献（唯一职责：$mount 输入的 contribution）
+// descriptors 与宿主 typert.host.js 的 invocations 共用单一来源（lib/wire.js）。
+// 消费规范（v0.2.5 重构）：命名空间服务经「驻扎插件」（inject: ['remote.flowchartStorage']）注入，
+// 直接传给 domainAdapter 按官方位置参数范式调用；本文件不再持有任何 RPC 封装层。
 import { MM_INVOCATIONS } from '../../../lib/wire.js'
 
 export const flowchartRemoteContribution = { package: 'dsh-flowchart', descriptors: MM_INVOCATIONS }
-
-// remote → rpc 封装（{ call(method, args) → 业务信封 }，与 wf createDomainRemote 同构）
-export function createDomainRemote(remote) {
-  const ns = remote && remote.flowchartStorage
-  return {
-    endpoint: 'remote.flowchartStorage',
-    async call(method, args) {
-      const fn = ns && ns[method]
-      if (typeof fn !== 'function') return { ok: false, error: '画布存储方法不可用：' + method }
-      const carried = await fn(args || {})
-      if (!carried || carried.ok !== true) {
-        const err = carried && carried.error
-        return { ok: false, error: err && err.message ? err.message : (err ? String(err) : '载体调用失败') }
-      }
-      return carried.value || { ok: true }
-    },
-  }
-}

@@ -15,10 +15,17 @@ function shapeEls(shapeId, w, h) {
   })
 }
 
+// 行高常量：与下方 tspan dy 一致（多行文本块整体垂直居中的基准）
+const LINE_H = 14
+
 export function NodeRenderer(props) {
   const { node, selected, editing, drawMode, onStartEdit, onCtxMenu } = props
   const isEditing = editing && editing.type === 'node' && editing.id === node.id
   const lines = String(node.text || '').split('\n')
+  // 多行垂直居中：<text> 锚定节点中心（dominant-baseline: central），逐行 tspan 从上到下排列；
+  // 仅当首行 dy=0 时整块从中心向下悬挂（N 行偏离 (N-1)*LINE_H/2）——首行向上偏移半个块高，
+  // 使文本块（1 行 / 2 行 / N 行）始终绕节点中心对称，横竖双居中。
+  const firstDy = -((lines.length - 1) * LINE_H) / 2
   const translate = 'translate(' + node.x + ' ' + node.y + ')'
   return el('g', {
     transform: translate,
@@ -28,7 +35,7 @@ export function NodeRenderer(props) {
   },
     el('g', { className: 'mm-node-body' }, ...shapeEls(node.shape, node.w, node.h)),
     !isEditing ? el('text', { className: 'mm-node-label', x: node.w / 2, y: node.h / 2 },
-      lines.map((ln, i) => el('tspan', { key: i, x: node.w / 2, dy: i === 0 ? 0 : 14 }, ln))) : null,
+      lines.map((ln, i) => el('tspan', { key: i, x: node.w / 2, dy: i === 0 ? firstDy : LINE_H }, ln))) : null,
     // 绘制模式选中态：四角 resize 手柄（Q1——四角均可拖动缩放）
     (selected && drawMode) ? el('g', null,
       el('circle', { className: 'mm-node-handle', cx: 0, cy: 0, r: 4.5 }),

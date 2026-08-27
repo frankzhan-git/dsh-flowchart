@@ -6,7 +6,7 @@ import { cloneDoc, createPage } from '../core/model.js'
 import { EDGE_KINDS, edgeOptions } from '../core/edge-kinds.js'
 import { setOpen, getOpen, subscribe } from '../core/store.js'
 import { buildInsertText } from '../core/codegen.js'
-import { defaultStore } from '../core/storage/index.js'
+import { defaultStore, storeMode, mountError } from '../core/storage/index.js'
 import { useToasts } from '../hooks/useToasts.js'
 import { useDocState } from '../hooks/useDocState.js'
 import { useCanvasInteractions } from '../hooks/useCanvasInteractions.js'
@@ -326,6 +326,7 @@ export function FlowchartModal(props) {
           onRename: (id, n) => manager.renameCanvas(id, n),
           onExport: (id) => manager.exportCanvas(id),
           onImport: manager.importCanvas, onNew: manager.newCanvas,
+          storeMode: storeMode(), storeErr: mountError(),
         }) : null,
       ),
       el('div', { className: 'mm-footer' },

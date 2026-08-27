@@ -73,16 +73,24 @@ export const CANVAS_CSS = `
   font-family: inherit; font-size: 10px; color: var(--mm-text-2);
 }
 .mm-canvas-tools {
-  position: absolute; right: 10px; top: 10px; z-index: 3;
+  position: absolute; right: 8px; top: 8px; z-index: 3;
   display: flex; align-items: center; gap: 4px;
 }
 .mm-ctool {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 8px; border-radius: 8px; border: 1px solid transparent;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--mm-border);
+  border-radius: 6px;
   background: var(--mm-bg-raised); color: var(--mm-text-2); cursor: pointer; font-size: 12px;
+  box-shadow: var(--mm-shadow);
+  transition: background-color .1s ease, color .1s ease, border-color .1s ease;
 }
 .mm-ctool:hover { color: var(--mm-text); }
-.mm-ctool-on { border-color: var(--mm-accent); color: var(--mm-accent); }
+.mm-ctool-on {
+  color: var(--mm-accent);
+  border-color: color-mix(in srgb, var(--mm-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--mm-accent) 12%, transparent);
+}
 .mm-canvas-actions {
   position: absolute; right: 10px; bottom: 10px; z-index: 3;
   display: flex; flex-direction: row; align-items: center; gap: 5px;

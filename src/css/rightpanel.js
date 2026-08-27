@@ -178,4 +178,12 @@ export const RIGHTPANEL_CSS = `
 .mm-history-confirm-ok:hover { background: color-mix(in srgb, var(--mm-danger) 12%, transparent); color: var(--mm-danger); }
 .mm-history-rename { flex: 1; min-width: 0; padding: 2px 6px; font-size: 12px; }
 .mm-history-empty { padding: 10px 14px 14px; font-size: 11px; color: var(--mm-text-2); }
+/* 存储模式提示（防静默）：宿主存储未连接时明示数据在浏览器本地 */
+.mm-store-note {
+  flex: none; margin: 0 12px 8px; padding: 5px 8px;
+  border-radius: 6px; font-size: 10.5px; line-height: 1.5;
+  color: var(--mm-warn, #d8a94f);
+  border: 1px solid color-mix(in srgb, var(--mm-warn, #d8a94f) 40%, transparent);
+  background: color-mix(in srgb, var(--mm-warn, #d8a94f) 10%, transparent);
+}
 `

@@ -12,19 +12,35 @@ export { migrateFile } from './migrate.js'
 export { sanitizeDoc } from './integrity.js'
 
 // 能力探测：domain（@Remote 宿主文件）> localStorage（永远兜底）
-export function probeAdapters(remote) {
+export function probeAdapters(ns) {
   const available = []
-  const d = domainAdapter(remote)
+  const d = domainAdapter(ns)
   if (d.ready) available.push(d)
   available.push(localStorageAdapter())
   return available
 }
 
 let cached = null
-export function defaultStore(remote) {
+export function defaultStore(ns) {
   if (cached) return cached
-  cached = probeAdapters(remote)[0]
+  cached = probeAdapters(ns)[0]
   return cached
+}
+
+// 当前生效的存储模式（防静默：UI 可直接显示「宿主磁盘 / 浏览器本地」）
+// domain = 宿主磁盘（跨端口共享）；localStorage = 浏览器本地（按端口隔离）
+export function storeMode() {
+  const store = cached || probeAdapters(undefined)[1]
+  return store && store.name === 'domain' ? 'domain' : 'localStorage'
+}
+
+// 网关挂载失败原因（防静默诊断）：客户端 $mount 失败时记录，UI 提示条可直接展示
+let mountErr = null
+export function reportMountError(message) {
+  mountErr = message ? String(message) : null
+}
+export function mountError() {
+  return mountErr
 }
 
 // ---------- 文档级编排 ----------

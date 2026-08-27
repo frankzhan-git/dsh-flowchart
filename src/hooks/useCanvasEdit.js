@@ -67,7 +67,7 @@ export function useCanvasEdit(deps) {
     setDoc((d) => ({
       ...d,
       nodes: d.nodes.filter((n) => !set.has(n.id)),
-      edges: d.edges.filter((e) => set.indexOf(e.from) === -1 && set.indexOf(e.to) === -1),
+      edges: d.edges.filter((e) => !set.has(e.from) && !set.has(e.to)),
     }))
     applySelection([], null)
   }
