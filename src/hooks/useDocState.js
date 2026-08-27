@@ -1,4 +1,4 @@
-// dsh-mermaid hooks/useDocState.js —— 核心状态容器（P1 应用层）
+// dsh-flowchart hooks/useDocState.js —— 核心状态容器（P1 应用层）
 // doc 是唯一事实源（P4）；撤销重做 = doc 快照；选中 = nodes + edge 双通道
 import React from 'react'
 import { cloneDoc, freshDoc } from '../core/model.js'

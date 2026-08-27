@@ -1,4 +1,4 @@
-// dsh-mermaid css/canvas.js —— 画布 / 角落按钮 / 浮窗 / 节点 / 箭头 / 选中 / 吸附 / 创建预览
+// dsh-flowchart css/canvas.js —— 画布 / 角落按钮 / 浮窗 / 节点 / 箭头 / 选中 / 吸附 / 创建预览
 export const CANVAS_CSS = `
 .mm-canvas-view { position: relative; width: 100%; height: 100%; overflow: hidden; }
 .mm-canvas { display: block; width: 100%; height: 100%; user-select: none; }

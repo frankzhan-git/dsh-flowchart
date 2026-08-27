@@ -1,4 +1,4 @@
-// dsh-mermaid components/canvas/SelectionOverlay.js —— 多选外框（组移动/组边批量/组角等比）
+// dsh-flowchart components/canvas/SelectionOverlay.js —— 多选外框（组移动/组边批量/组角等比）
 import React from 'react'
 import { groupBounds } from '../../core/geometry.js'
 

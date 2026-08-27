@@ -1,4 +1,4 @@
-// dsh-mermaid components/inspector/SettingsPanel.js —— 右栏「设置」区
+// dsh-flowchart components/inspector/SettingsPanel.js —— 右栏「设置」区
 // 业务管线（选中对象 → 面板映射，三通道互斥选中）：
 //   选中页面 → 页面配置（图类型平铺单选 + 图例，不支持类型标灰）
 //   选中节点 → 节点配置（形状平铺单选 + 缩略图图例）

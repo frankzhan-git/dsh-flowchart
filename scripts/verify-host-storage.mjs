@@ -1,7 +1,7 @@
 // verify-host-storage —— 宿主命名空间目录存储（内存 fs 模拟）：
 // 目录布局（MANIFEST/canvases 分层）/ 原子写 / 合并 / 损坏隔离 / tmp 清扫 / 旧目录迁移 / meta 缓存
 import assert from 'node:assert/strict'
-import { createMermaidService, ensureManifest, sweepTmpFiles, migrateLegacyDir } from '../lib/mermaid-service.js'
+import { createFlowchartService, ensureManifest, sweepTmpFiles, migrateLegacyDir, migrateNamespaceDir, NAMESPACE, LEGACY_NAMESPACE } from '../lib/flowchart-service.js'
 
 // 内存 fs：path → text；writeAtomic = 直写 + 模拟 rename（原子性语义由实现保证，测试校验结果）
 function memFs() {
@@ -48,17 +48,17 @@ function memFs() {
   }
 }
 
-const NS = '/storages/dsh-mermaid'
+const NS = '/storages/dsh-flowchart'
 const LEGACY = '/storages/mermaid-canvases'
 
 const fs = memFs()
-const svc = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs })
+const svc = await createFlowchartService({ storagesRoot: '/storages', fsImpl: fs })
 
 // 0. 目录布局：命名空间清单自动生成 + canvases 分层子目录
 {
   assert.ok(fs.files.has(NS + '/MANIFEST.json'), 'MANIFEST.json 自动重建')
   const manifest = JSON.parse(fs.files.get(NS + '/MANIFEST.json'))
-  assert.equal(manifest.plugin, 'dsh-mermaid')
+  assert.equal(manifest.plugin, 'dsh-flowchart')
   assert.equal(manifest.schemaVersion, 1)
 }
 // 1. 保存往返：saveMeta + saveBody 三集合合并（画布落 canvases/ 子目录）
@@ -100,7 +100,7 @@ const svc = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs }
 // 3. 损坏文件隔离（.corrupt，位于 canvases/ 内）——启动扫描不崩、业务不出现
 {
   fs.files.set(NS + '/canvases/bad.json', '{corrupt')
-  const svc2 = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs })
+  const svc2 = await createFlowchartService({ storagesRoot: '/storages', fsImpl: fs })
   const r = await svc2.loadBody('bad')
   assert.equal(r.body, null, '损坏 → body null')
   const r2 = await svc2.listMeta({})
@@ -112,7 +112,7 @@ const svc = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs }
 {
   fs.files.set(NS + '/canvases/.abc.tmp', '{"partial": 1}')
   fs.files.set(NS + '/canvases/.def.tmp', '{"partial": 2}')
-  const svc3 = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs })
+  const svc3 = await createFlowchartService({ storagesRoot: '/storages', fsImpl: fs })
   assert.ok(!fs.files.has(NS + '/canvases/.abc.tmp'), 'tmp 残留已清扫')
   assert.ok(fs.files.has(NS + '/canvases/d1.json'), '正常画布不受影响')
 }
@@ -131,7 +131,7 @@ const svc = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs }
   // 旧目录遗留数据 + 与现有画布同名的冲突数据
   fs.files.set(LEGACY + '/old1.json', JSON.stringify({ schemaVersion: 1, id: 'old1', name: '旧文件', nodes: [], edges: [], pages: [] }))
   fs.files.set(LEGACY + '/d1.json', JSON.stringify({ schemaVersion: 1, id: 'd1', name: '冲突被忽略', nodes: [], edges: [], pages: [] }))
-  const svc4 = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs })
+  const svc4 = await createFlowchartService({ storagesRoot: '/storages', fsImpl: fs })
   assert.ok(fs.files.has(NS + '/canvases/old1.json'), '旧文件迁移成功')
   const gm = await svc4.getMeta('old1')
   assert.equal(gm.meta.name, '旧文件')
@@ -150,10 +150,38 @@ const svc = await createMermaidService({ storagesRoot: '/storages', fsImpl: fs }
 // 7. 纯函数层：ensureManifest 幂等 / sweepTmpFiles 计数
 {
   const r = await ensureManifest(fs, NS + '/MANIFEST.json')
-  assert.equal(r.manifest.plugin, 'dsh-mermaid')
+  assert.equal(r.manifest.plugin, 'dsh-flowchart')
   fs.files.set(NS + '/canvases/.x.tmp', '1')
   const n = await sweepTmpFiles(fs, NS + '/canvases')
   assert.equal(n, 1)
 }
 
-console.log('✅ verify-host-storage: 全部断言通过（目录布局/MANIFEST/往返/合并/损坏隔离/tmp清扫/旧目录迁移/清洗/删除）')
+// 8. 改名迁移：旧命名空间 dsh-mermaid → dsh-flowchart（整目录改名；目标已存在不动作；旧清单兼容）
+{
+  const fs2 = memFs()
+  fs2.files.set('/storages/dsh-mermaid/MANIFEST.json', JSON.stringify({ schemaVersion: 1, plugin: LEGACY_NAMESPACE, createdAt: '2025-01-01' }))
+  fs2.files.set('/storages/dsh-mermaid/canvases/old1.json', JSON.stringify({ schemaVersion: 1, id: 'old1', name: '旧画布', nodes: [], edges: [], pages: [] }))
+  const svc5 = await createFlowchartService({ storagesRoot: '/storages', fsImpl: fs2 })
+  const moved = await migrateNamespaceDir(fs2, '/storages/dsh-mermaid', NS)
+  assert.equal(moved.migrated, 0, '服务启动已迁移过,再调用不应重复迁移')
+  assert.ok(fs2.files.has(NS + '/canvases/old1.json'), '旧命名空间画布随整目录迁移到新命名空间')
+  assert.ok(!fs2.files.has('/storages/dsh-mermaid/canvases/old1.json'), '旧命名空间原路径已移除')
+  const manifest = JSON.parse(fs2.files.get(NS + '/MANIFEST.json'))
+  assert.equal(manifest.plugin, LEGACY_NAMESPACE, '旧清单被接受（不当作损坏重建）')
+  assert.equal(manifest.createdAt, '2025-01-01', '旧清单 createdAt 保留')
+  const gm3 = await svc5.getMeta('old1')
+  assert.equal(gm3.meta.name, '旧画布', '迁移后元数据可读')
+  await svc5.close()
+}
+// 9. 改名迁移幂等/目标存在保护：新命名空间已有数据时不动作
+{
+  const fs3 = memFs()
+  fs3.files.set('/storages/dsh-mermaid/canvases/old2.json', JSON.stringify({ schemaVersion: 1, id: 'old2', name: '旧', nodes: [], edges: [], pages: [] }))
+  fs3.files.set(NS + '/canvases/new2.json', JSON.stringify({ schemaVersion: 1, id: 'new2', name: '新', nodes: [], edges: [], pages: [] }))
+  const m = await migrateNamespaceDir(fs3, '/storages/dsh-mermaid', NS)
+  assert.equal(m.reason, 'target-exists', '目标非空 → 不迁移')
+  assert.ok(fs3.files.has('/storages/dsh-mermaid/canvases/old2.json'), '旧数据保留原处')
+  assert.ok(fs3.files.has(NS + '/canvases/new2.json'), '新数据显示不动')
+}
+
+console.log('✅ verify-host-storage: 全部断言通过（目录布局/MANIFEST/往返/合并/损坏隔离/tmp清扫/旧目录迁移/清洗/删除/命名空间改名迁移）')

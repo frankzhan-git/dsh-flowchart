@@ -1,4 +1,4 @@
-// dsh-mermaid components/inspector/PropField.js —— 注册表驱动通用表单（同 wf PropField 模式）
+// dsh-flowchart components/inspector/PropField.js —— 注册表驱动通用表单（同 wf PropField 模式）
 // def.desc：配置项解释 —— 显示在字段标题后的 ⓘ 图标上，hover 弹出 tooltip（portal 渲染到 body，
 //           避免被右栏滚动容器裁剪）；字段本身不再占解释文字空间
 import React from 'react'

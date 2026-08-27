@@ -1,4 +1,4 @@
-// dsh-mermaid core/geometry.js
+// dsh-flowchart core/geometry.js
 // 职责：相机（toLocal/zoomAt/computePan）、命中（handleMetrics/hitEdgeOf/hitPriority/hitPageChip）、
 //       锚点换算（anchorFromPoint/anchorToWorld）、箭头几何（edgeKindOf/edgeGeom/edgeHitDistance）、
 //       包围盒/框选/吸附（groupBounds/containsNode/pickNodes）。全部纯函数，零 React/DSH。

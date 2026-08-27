@@ -1,18 +1,18 @@
-# dsh-mermaid — Mermaid 流程图可视化绘制插件
+# dsh-flowchart — Mermaid 流程图可视化绘制插件
 
 > **画布绘制 → 实时生成标准 Mermaid 代码 → 预览 / 复制 / 一键插入 dsh 会话**
 >
 > 画布是输入方式，**Mermaid 代码是唯一产物**（一等公民：任何画布状态恒产出可解析的标准代码，不发明私有扩展）。
 
-[![v0.2.1](https://img.shields.io/badge/version-v0.2.1-2f6feb)](https://github.com/frankzhan-git/dsh-mermaid)
-[![verify](https://github.com/frankzhan-git/dsh-mermaid/actions/workflows/verify.yml/badge.svg)](https://github.com/frankzhan-git/dsh-mermaid/actions/workflows/verify.yml)
+[![v0.2.1](https://img.shields.io/badge/version-v0.2.1-2f6feb)](https://github.com/frankzhan-git/dsh-flowchart)
+[![verify](https://github.com/frankzhan-git/dsh-flowchart/actions/workflows/verify.yml/badge.svg)](https://github.com/frankzhan-git/dsh-flowchart/actions/workflows/verify.yml)
 
-dsh-mermaid 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插件：会话输入框工具行点「流程图」唤起画板，绘制流程节点与箭头，画布**实时翻译为标准 Mermaid 代码**——带主题/方向/间距配置的 `flowchart` 图，可复制、可在插件内渲染预览（渲染器内置，离线可用）、可一键插入会话输入框随需求发给 agent。
+dsh-flowchart 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插件：会话输入框工具行点「流程图」唤起画板，绘制流程节点与箭头，画布**实时翻译为标准 Mermaid 代码**——带主题/方向/间距配置的 `flowchart` 图，可复制、可在插件内渲染预览（渲染器内置，离线可用）、可一键插入会话输入框随需求发给 agent。
 
 ## 📸 产品预览
 
 <p align="center">
-  <img src="view.png" alt="dsh-mermaid 产品预览：Mermaid 流程图画布 + 形状面板 + 画布历史" />
+  <img src="view.png" alt="dsh-flowchart 产品预览：Mermaid 流程图画布 + 形状面板 + 画布历史" />
 </p>
 
 ---
@@ -29,7 +29,7 @@ dsh-mermaid 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插�
 - **代码一等公民（C1–C3）**：任意状态 → `mermaid.parse` 可解析代码；实时刷新；仅输出官方语法 + 非默认配置（front-matter）
 - **两个预览浮窗**（画布右上角按钮，画布内浮窗 + 可多页切换）：Mermaid 代码（复制全部）、渲染预览（内置 mermaid 渲染器）
 - **插入会话**：引导语 + ```mermaid 代码块（可切「仅代码」档），`inputActions.setDraft` 写入草稿
-- **实时落盘（严谨目录管理）**：800ms 防抖自动保存 → `~/.dsh/storages/dsh-mermaid/`（命名空间清单 `MANIFEST.json` + `canvases/{id}.json` 每画布原子写、`.corrupt` 损坏隔离、临时文件启动清扫、meta 缓存）；不污染 storages 顶层；无宿主存储自动降级 localStorage
+- **实时落盘（严谨目录管理）**：800ms 防抖自动保存 → `~/.dsh/storages/dsh-flowchart/`（命名空间清单 `MANIFEST.json` + `canvases/{id}.json` 每画布原子写、`.corrupt` 损坏隔离、临时文件启动清扫、meta 缓存）；不污染 storages 顶层；无宿主存储自动降级 localStorage
 - **画布历史**：右栏（设置 + 历史两区，同 dsh-wf）：最近打开 / 新建 / 重命名 / 删除（二次确认）/ 导出 / 导入
 - **类型扩展**：页面类型注册表预留（时序/类图/状态图/ER/甘特/饼/旅行/思维导图/时间线/桑基/象限/Git/看板/通讯/需求 16 种，v1 置灰提示）
 
@@ -45,7 +45,7 @@ dsh plugin --profile web add dsh-flowchart
 
 `dsh plugin` 自动安装依赖并加入 `dsh.profile.bundles`；重启 DSH 后输入框工具行出现「流程图」按钮（插件管理器显示名 "flowchart"）。
 
-> 从源码安装：`git clone https://github.com/frankzhan-git/dsh-mermaid.git && cd dsh-mermaid && npm install && npm run build`，再 `dsh plugin --profile web add "file:<克隆目录绝对路径>"`。
+> 从源码安装：`git clone https://github.com/frankzhan-git/dsh-flowchart.git && cd dsh-flowchart && npm install && npm run build`，再 `dsh plugin --profile web add "file:<克隆目录绝对路径>"`。
 
 **常见问题**
 
@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-flowchart
 | 按钮不出现 | 确认 `dsh plugin add` 成功且 bundles 含 `dsh-flowchart` → 重启 DSH |
 | 控制台 `Cannot find module` | banner id 与 patch name 不一致 → 重新构建 |
 | 保存失败 toast | 宿主存储未生效（需 web profile 含 api-remotes）；或自动降级 localStorage（不影响使用） |
-| 画布数据在 `~/.dsh/storages/dsh-mermaid/` | 宿主存储正常（MANIFEST.json + canvases/{id}.json；旧版 mermaid-canvases/ 自动迁移） |
+| 画布数据在 `~/.dsh/storages/dsh-flowchart/` | 宿主存储正常（MANIFEST.json + canvases/{id}.json；旧版 mermaid-canvases/ 自动迁移） |
 
 ---
 
@@ -86,11 +86,11 @@ dsh plugin --profile web add dsh-flowchart
 ## 🏗️ 架构（对齐 dsh-wf 七范式）
 
 ```
-dsh-mermaid/
+dsh-flowchart/
 ├── lib/                  # 宿主半（Node：命名空间目录存储 + Typert Remote 网关）
 │   ├── index.js          #   Cordis 入口：ctx.get('typert') 可选 → provide/bind/register
 │   ├── wire.js           #   线协议单一来源（zod：记录 schema + invocations 双端共用）
-│   ├── mermaid-service.js#   CanvasStore 契约 → 目录文件（原子写/meta 缓存/.corrupt 隔离/写链串行）
+│   ├── flowchart-service.js#   CanvasStore 契约 → 目录文件（原子写/meta 缓存/.corrupt 隔离/写链串行）
 │   └── typert.host.js    #   宿主线协议贡献（gateway 严格路径）
 ├── src/
 │   ├── client.js         # 宿主适配层（样式注入 + 两槽位注册 + remote.$mount）
@@ -109,7 +109,7 @@ dsh-mermaid/
 ├── schema.json           # 画布数据契约 Schema（与注册表一致性由测试守护）
 ```
 
-- 存储（严谨目录管理）：`~/.dsh/storages/dsh-mermaid/` = 插件唯一命名空间（`MANIFEST.json` 清单 + `canvases/{id}.json` 每画布原子写 + `.corrupt` 隔离 + 临时文件启动清扫）；@Remote 网关传输（zod 线协议校验）；localStorage 兜底（键前缀 `dsh-mermaid:`）
+- 存储（严谨目录管理）：`~/.dsh/storages/dsh-flowchart/` = 插件唯一命名空间（`MANIFEST.json` 清单 + `canvases/{id}.json` 每画布原子写 + `.corrupt` 隔离 + 临时文件启动清扫）；@Remote 网关传输（zod 线协议校验）；localStorage 兜底（键前缀 `dsh-flowchart:`）
 - 代码管线：`normalize`（转义/孤儿边剔除/未知形状回退）→ `serialize`（注册表语法 + front-matter 仅非默认）→ `validate`（`mermaid.parse` 浏览器端兜底 + verify-codegen 断言）
 - 布局：画布内角落按钮（模式徽标 / 代码·预览·设置 / 撤销·重做·清空·缩放）+ 右栏（设置 + 画布历史）——与 dsh-wf 完全对齐
 
@@ -131,15 +131,15 @@ npm run verify   # 7 套件一键全绿
 
 ## 📄 文档
 
-- [产品设计](docs/dsh-mermaid-plugin-design.md) / [架构方案](docs/dsh-mermaid-plugin-architecture.md) / [开发范式](docs/dsh-mermaid-plugin-dev-standards.md) / [开发计划](docs/dsh-mermaid-plugin-plan.md)
-- [Mermaid Flowchart 配置矩阵](docs/dsh-mermaid-config-matrix.md)（官方支持 × 插件实现）
+- [产品设计](docs/dsh-flowchart-plugin-design.md) / [架构方案](docs/dsh-flowchart-plugin-architecture.md) / [开发范式](docs/dsh-flowchart-plugin-dev-standards.md) / [开发计划](docs/dsh-flowchart-plugin-plan.md)
+- [Mermaid Flowchart 配置矩阵](docs/dsh-flowchart-config-matrix.md)（官方支持 × 插件实现）
 
 ## 🤝 参与贡献
 
-欢迎提 [Issue](https://github.com/frankzhan-git/dsh-mermaid/issues) 与 [Pull Request](https://github.com/frankzhan-git/dsh-mermaid/pulls)：
+欢迎提 [Issue](https://github.com/frankzhan-git/dsh-flowchart/issues) 与 [Pull Request](https://github.com/frankzhan-git/dsh-flowchart/pulls)：
 
 1. Fork 本仓库并新建分支（`feat/<milestone>-<名称>` / `fix/<名称>`）；
-2. 开发遵循 [docs/dsh-mermaid-plugin-dev-standards.md](docs/dsh-mermaid-plugin-dev-standards.md)（分层/注册表/纯函数状态机/存储即服务）；
+2. 开发遵循 [docs/dsh-flowchart-plugin-dev-standards.md](docs/dsh-flowchart-plugin-dev-standards.md)（分层/注册表/纯函数状态机/存储即服务）；
 3. 合入前 `npm run verify` 必须全绿 + 产品验收清单逐项勾选（见产品设计第 5 章）。
 
 ## 📝 许可证

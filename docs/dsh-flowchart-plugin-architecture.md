@@ -1,6 +1,6 @@
-# dsh-mermaid 研发架构方案
+# dsh-flowchart 研发架构方案
 
-> 状态：设计稿 v1，与《dsh-mermaid-plugin-design.md》（产品设计）配套
+> 状态：设计稿 v1，与《dsh-flowchart-plugin-design.md》（产品设计）配套
 > 总纲：**分层领域 + 注册表驱动 + 纯函数状态机 + 命令副作用隔离 + 单一数据所有权 + 宿主解耦 + 存储即服务**（沿 dsh-wf P1–P7 范式）
 > 新增总纲：**代码一等公民**——`codegen` 是产品核心（画布 → 标准 Mermaid 代码的唯一出口），任何画布状态恒产出合法代码（C1–C3 红线见产品设计 0.1）；`verify-codegen` 为最高优先级测试套件，不可降级发布
 > 参考实现源码：`dsh-wf-plugin/`（交互/存储/宿主半）、`dsh-fm-plugin/`（正式版发布链路）
@@ -11,9 +11,9 @@
 
 ```
 ┌─ 宿主适配层（P6，DSH 知识仅在此层）───────────────────────────────────────┐
-│  cordis.patch.yml 注册（name: dsh流程图）                                 │
-│  lib/index.js   ctx.get('typert') 可选 → createMermaidService() →          │
-│                 ctx.provide('mermaidStorage') + bindTypertRemote +          │
+│  cordis.patch.yml 注册（name: dsh-flowchart）                                 │
+│  lib/index.js   ctx.get('typert') 可选 → createFlowchartService() →          │
+│                 ctx.provide('flowchartStorage') + bindTypertRemote +          │
 │                 typert.register(TYPERT_HOST)（@Remote 网关）→ 浏览器可调用 │
 │  lib/wire.js    线协议单一来源（zod：记录 schema + invocations 双端共用）   │
 │  src/client.js  样式注入 + slots.inject('conversation.input.left' /       │
@@ -63,22 +63,22 @@ DOM 事件 → useCanvasInteractions.onPointer*
 
 ### 1.2 包与构建
 
-- 包名 `dsh-mermaid`；`package.json`：
+- 包名 `dsh-flowchart`；`package.json`：
   - `main: lib/index.js`；`exports: { ".", "./client", "./package.json" }`（另加 `./cordis.patch.yml`，与 wf 一致）
   - `dsh.client.inject`: `@deepseek-ai/dsh-client-ui-primitives / -ui-slots / -client-runtime / -client-locale`
   - `dsh.bundle.patch: ./cordis.patch.yml`
   - `dependencies`: `zod ^4`、`mermaid ^11.4.1`（与 dsh-fm 同版本线）；`devDependencies`: `esbuild ^0.24`
-- esbuild：entry `src/client.js` → `lib/client.js`；`external: ['react','react/jsx-runtime','react-dom','@deepseek-ai/*']`，第三方（mermaid/zod）内联（dsh-fm 已验证该策略）；banner id `dsh流程图` 与 cordis.patch.yml `name` 严格一致。
-- 正式版发布链路完全对齐 dsh-fm：`dsh-mermaid-plugin/`（源码仓）→ `scripts/sync-release.mjs` → `dsh-mermaid-release/`（免构建安装包：`install.ps1` + `README.md` 专属 + 源码/构建产物同步）；`CHANGELOG.md`、`LICENSE`、`schema.json`（代码/数据契约 schema，与注册表一致性由测试守护）。
+- esbuild：entry `src/client.js` → `lib/client.js`；`external: ['react','react/jsx-runtime','react-dom','@deepseek-ai/*']`，第三方（mermaid/zod）内联（dsh-fm 已验证该策略）；banner id `dsh-flowchart` 与 cordis.patch.yml `name` 严格一致。
+- 正式版发布链路完全对齐 dsh-fm：`dsh-flowchart-plugin/`（源码仓）→ `scripts/sync-release.mjs` → `dsh-flowchart-release/`（免构建安装包：`install.ps1` + `README.md` 专属 + 源码/构建产物同步）；`CHANGELOG.md`、`LICENSE`、`schema.json`（代码/数据契约 schema，与注册表一致性由测试守护）。
 
 ---
 
 ## 第 2 章 仓库结构
 
 ```
-dsh-mermaid-plugin/
+dsh-flowchart-plugin/
 ├── package.json            # 入口 lib/index.js；scripts: build / verify
-├── cordis.patch.yml        # - insert: [{ id: dsh-mermaid, name: dsh流程图 }]
+├── cordis.patch.yml        # - insert: [{ id: dsh-flowchart, name: dsh-flowchart }]
 ├── schema.json             # 画布数据契约 Schema（与 core 注册表一致性测试）
 ├── src/                    # ★ 唯一手写源
 │   ├── client.js           # 宿主适配层入口（样式注入 + 两槽位注册 + remote.$mount）
@@ -94,8 +94,8 @@ dsh-mermaid-plugin/
 │   ├── hooks/              # useDocState  useCanvasInteractions  useCanvasEdit
 │   │                       # useCanvasManager  usePreview  useToasts
 │   ├── components/         # 表现层（纯渲染 + 回调）
-│   │   ├── MermaidButton.js        # 槽位按钮（适配层组件）
-│   │   ├── MermaidModal.js         # 浮层外壳（编排，≤300 行）
+│   │   ├── FlowchartButton.js        # 槽位按钮（适配层组件）
+│   │   ├── FlowchartModal.js         # 浮层外壳（编排，≤300 行）
 │   │   ├── canvas/  CanvasStage  CanvasOverlay(四角按钮+浮窗)  NodeRenderer
 │   │   │            EdgeLayer  EdgeRenderer  SelectionOverlay  SnapLines  ArrowGhost
 │   │   ├── inspector/ SettingsPanel(=wf InspectorPanel 同款)  PropField  ShapePicker
@@ -106,7 +106,7 @@ dsh-mermaid-plugin/
 │   ├── i18n/index.js      # t(key, params) + zh 表
 │   └── css/               # base canvas rightpanel preview + index 聚合（--mm-* token）
 ├── lib/                   # 宿主半（手写）+ client.js（构建产物）
-│   ├── index.js  wire.js  mermaid-service.js  typert.host.js
+│   ├── index.js  wire.js  flowchart-service.js  typert.host.js
 ├── scripts/               # build.mjs + verify-*（见第 9 章测试矩阵）
 ├── test/                  # codegen / interactions / storage 单测（node --test）
 ├── README.md  CHANGELOG.md  LICENSE  ARCHITECTURE.md
@@ -170,14 +170,14 @@ interface CanvasStore {
 
 - 业务层只认此接口；`probeAdapters()` 按优先级装配：`domainAdapter`（现役，@Remote 宿主文件）→ `indexedDBAdapter`（预留）→ `localStorageAdapter`（兜底，旧键迁移）。
 - 自动保存管线：dirty 集合（自上次保存变更的记录 id：pages/nodes/edges）→ 800ms 防抖 → `saveBody(id, patch)` → 更新 meta（updatedAt/elementCount）→ 关闭 `flushSave`。
-- 宿主介质: **命名空间目录管理**——`~/.dsh/storages/dsh-mermaid/{MANIFEST.json, canvases/{id}.json}`（插件唯一命名空间，不污染 storages 顶层；每文档一 JSON，`writeAtomic` = 临时文件 + fsync + rename；写链串行读-改-写；损坏 `readCanvasFile` 改名 `.corrupt` 隔离；临时文件残留启动清扫；meta 缓存启动扫描，文件权威；旧目录 `mermaid-canvases/` 启动一次性迁移，只入不覆盖）。**无媒体**（flowchart 无图片控件），故 v1 无 putMedia/getMedia——接口预留位，未来按 wf 同款补。
+- 宿主介质: **命名空间目录管理**——`~/.dsh/storages/dsh-flowchart/{MANIFEST.json, canvases/{id}.json}`（插件唯一命名空间，不污染 storages 顶层；每文档一 JSON，`writeAtomic` = 临时文件 + fsync + rename；写链串行读-改-写；损坏 `readCanvasFile` 改名 `.corrupt` 隔离；临时文件残留启动清扫；meta 缓存启动扫描，文件权威；旧目录 `mermaid-canvases/` 启动一次性迁移，只入不覆盖）。**无媒体**（flowchart 无图片控件），故 v1 无 putMedia/getMedia——接口预留位，未来按 wf 同款补。
 
 ### 3.4 传输（@Remote 网关，S 同 wf 现役形态）
 
 - `lib/wire.js`：zod 单源（`META_SCHEMA`/`BODY_SCHEMA`/`MM_INVOCATIONS`：ping/listMeta/getMeta/loadBody/saveMeta/saveBody/remove/clear，全部 `strict` codec + `sourceLocation`）。
 - `lib/typert.host.js`：`TYPERT_HOST` 描述符（gateway 严格路径）。
-- `lib/index.js`：`const typert = ctx.get('typert'); if (!typert) return`（可选依赖，非 web profile 无效果）→ `ctx.effect(createMermaidService → provide + bindTypertRemote + typert.register + close)`。
-- `src/core/storage/remote.js`：`mermaidRemoteContribution`（descriptors= MM_INVOCATIONS）+ `createDomainRemote(remote)`（卸载 `ok/error` 载体信封）。
+- `lib/index.js`：`const typert = ctx.get('typert'); if (!typert) return`（可选依赖，非 web profile 无效果）→ `ctx.effect(createFlowchartService → provide + bindTypertRemote + typert.register + close)`。
+- `src/core/storage/remote.js`：`flowchartRemoteContribution`（descriptors= MM_INVOCATIONS）+ `createDomainRemote(remote)`（卸载 `ok/error` 载体信封）。
 - `src/client.js` apply 时 `await remote.$mount(...)` 成功 → `defaultStore(createDomainRemote(remote))`；失败 → localStorage 兜底（不阻塞槽位注册）。
 
 ---
@@ -240,7 +240,7 @@ edgeKind(srcSide, dstSide, isHorizontalDominant):
 | RESIZE | commit | history |
 | EDIT_LABEL | 双击回调进入，文本浮层提交/取消 | patch + commit |
 
-### 4.5 复用映射（dsh-wf → dsh-mermaid）
+### 4.5 复用映射（dsh-wf → dsh-flowchart）
 
 | wf 纯函数 | 复用方式 |
 |---|---|
@@ -349,7 +349,7 @@ buildMermaidCode(doc) → { pages: [{ pageId, code, issues: Issue[] }], issues: 
 - `SettingsPanel`：右栏设置区（同 wf InspectorPanel 模式），按选中项分节（无选中 = 文档 + 页面；选中节点 = +节点形状/文本/宽高；选中箭头 = +边类型/标签），`PropField` 注册表驱动。
 - `ShapePicker`：右键级联子菜单 + 节点设置共用：`shapeThumbs` 14 项缩略图网格（2 列），选中高亮，hover tooltip 中文名。
 - `DocumentPanel`（画布历史）：最近打开列表 / 新建 / 重命名 / 删除（二次确认）/ 导出 / 导入（重分配 id）；`listMeta` 不触 body；高度可拖（同 wf RightPanel histH）。
-- `MermaidModal` 编排（≤300 行）：hooks 装配 + 左中布局（画布 + CanvasOverlay；右侧 = RightPanel 由「设置」按钮显隐）+ 顶栏（新建/全屏/关闭）+ 底栏（取消 /「插入到会话」主按钮 + 仅代码切换）+ toast 容器。
+- `FlowchartModal` 编排（≤300 行）：hooks 装配 + 左中布局（画布 + CanvasOverlay；右侧 = RightPanel 由「设置」按钮显隐）+ 顶栏（新建/全屏/关闭）+ 底栏（取消 /「插入到会话」主按钮 + 仅代码切换）+ toast 容器。
 
 ---
 

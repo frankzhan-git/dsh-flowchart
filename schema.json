@@ -1,6 +1,6 @@
 {
   "$schema": "https://mermaid.js.org/schema/",
-  "title": "dsh-mermaid CanvasFile 数据契约",
+  "title": "dsh-flowchart CanvasFile 数据契约",
   "type": "object",
   "properties": {
     "schemaVersion": { "const": 1 },

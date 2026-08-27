@@ -1,4 +1,4 @@
-// dsh-mermaid components/canvas/ArrowGhost.js —— 绘制中预览
+// dsh-flowchart components/canvas/ArrowGhost.js —— 绘制中预览
 // 两种模式：
 //  - arrow（起笔画箭头）：吸附高亮 + 目标边缘实心圆点 + 跨页红叉
 //  - anchor（锚点挪动）：完整箭头预览 + 两端圆点 + 脱离控件边的红叉（松开=取消连线）

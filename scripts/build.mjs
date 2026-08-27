@@ -1,4 +1,4 @@
-// 构建 dsh-mermaid 的 client bundle（ModuleLoader 格式）
+// 构建 dsh-flowchart 的 client bundle（ModuleLoader 格式）
 // 依赖：react / react/jsx-runtime / @deepseek-ai/* 保留为共享 require；mermaid/zod 等第三方库内联。
 import { build } from 'esbuild'
 import { fileURLToPath } from 'node:url'

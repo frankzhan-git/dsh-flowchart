@@ -1,4 +1,4 @@
-# dsh-mermaid — Mermaid 流程图可视化绘制插件（产品设计方案）
+# dsh-flowchart — Mermaid 流程图可视化绘制插件（产品设计方案）
 
 > 状态：设计稿 v1（需求分析 + 产品设计，待用户确认决策点后进入实施）
 > 定位：DSH **正式版插件**（profile bundle 层），产出 **Mermaid 代码**（v1 = `flowchart`）
@@ -10,9 +10,9 @@
 
 ### 0.1 一句话产品定义 + 代码一等公民定位
 
-> **dsh-mermaid 是一个「画布 → 标准 Mermaid 代码」的翻译器**：用户在画布上绘制「页面 → 控件（流程节点）→ 箭头（流程边）」，插件把画布结构**实时翻译成标准 Mermaid 代码**，用于向模型传递复杂结构图设计需求。
+> **dsh-flowchart 是一个「画布 → 标准 Mermaid 代码」的翻译器**：用户在画布上绘制「页面 → 控件（流程节点）→ 箭头（流程边）」，插件把画布结构**实时翻译成标准 Mermaid 代码**，用于向模型传递复杂结构图设计需求。
 >
-> **画布是输入方式，Mermaid 代码是唯一产物出口**——预览、复制、一键插入会话全部以代码为载体。类比 dsh-wf（画布 → JSONL 喂模型）：dsh-mermaid = 画布 → Mermaid 代码喂模型，代码地位与 wf 的 JSONL 完全同级，是**一等公民**。
+> **画布是输入方式，Mermaid 代码是唯一产物出口**——预览、复制、一键插入会话全部以代码为载体。类比 dsh-wf（画布 → JSONL 喂模型）：dsh-flowchart = 画布 → Mermaid 代码喂模型，代码地位与 wf 的 JSONL 完全同级，是**一等公民**。
 
 **代码一等公民 = 三条硬红线（产品承诺，也是测试不变量）：**
 
@@ -36,11 +36,11 @@
 | R6 | 设置面板：按页面类型 + 控件类型提供 mermaid 支持配置项 | 视图 6 | 配置注册表：文档级（主题）+ 页面级（flowchart 配置）+ 控件级（形状/文本）+ 边级（类型/标签） |
 | R7 | Mermaid code 预览 + 复制 + 一键插入会话窗口 | 视图 7 / 服务 2-3 | 实时生成代码；`mermaid.render` 预览（错误提示不阻断）；复制到剪贴板；插入 = `inputActions.setDraft` |
 | R8 | 鼠键、画布交互：缩放 / 拖动 / 一键还原 / 撤销 / 批量框选 / 批量移动 / 批量宽高 / 批量 resize | 视图 8 | 复用 dsh-wf 交互状态机 |
-| R9 | 实时自动保存 + 画布落盘 | 服务 1 | 宿主半命名空间目录（`~/.dsh/storages/dsh-mermaid/canvases/{id}.json` + MANIFEST），@Remote 网关传输，localStorage 兜底 |
+| R9 | 实时自动保存 + 画布落盘 | 服务 1 | 宿主半命名空间目录（`~/.dsh/storages/dsh-flowchart/canvases/{id}.json` + MANIFEST），@Remote 网关传输，localStorage 兜底 |
 
 ### 0.3 与 dsh-wf 的本质差异（决定了不能直接复制，只能复用范式）
 
-| 维度 | dsh-wf（界面草图） | dsh-mermaid（流程图） |
+| 维度 | dsh-wf（界面草图） | dsh-flowchart（流程图） |
 |---|---|---|
 | 产出 | JSONL 语义描述（结构树） | Mermaid 代码（节点 + 边 + 配置） |
 | 元素结构 | 树形嵌套（页面→容器→控件） | **平铺**（页面 / 节点 / 边 三类集合，无嵌套、无容器） |
@@ -85,7 +85,7 @@
 | E3 | 复制节点不连带箭头 | 跨引用复制语义复杂且需求未列；v1 明确边界（README 声明），v1.1 按需 |
 | E4 | 无媒体存储 | flowchart 无图片节点，CanvasStore 接口预留 putMedia/getMedia 位 |
 | E5 | 元素 id 规则 | 页面 `p*` / 节点 `n*` / 边 `e*` + 模块 seq；载入时 `reserveSeqs` 推进（防复制粘贴 id 冲突，wf 事故） |
-| E6 | 显示名 | 包名 `dsh-mermaid`；cordis.patch `name: dsh流程图`（显示名「流程图」）；install.ps1 用字符码构造中文名（同 dsh-fm） |
+| E6 | 显示名 | 包名 `dsh-flowchart`；cordis.patch `name: dsh-flowchart`（显示名「流程图」）；install.ps1 用字符码构造中文名（同 dsh-fm） |
 
 ---
 
@@ -345,7 +345,7 @@ flowchart TD
 
 - 右栏下半区 = 画布历史：最近打开、新建、重命名（双击）、删除（二次确认）、导出（CanvasFile JSON）、导入（重建 id 绝不覆盖）；分区高度可拖（同 wf RightPanel histH）。
 - 自动保存：800ms 防抖 + dirty 集合（变更的 pages/nodes/edges 记录 id）→ 增量 patch 写入；关闭浮层 `flushSave`；宿主写链串行（读-改-写）双保险。
-- 落盘：**命名空间目录管理**——`~/.dsh/storages/dsh-mermaid/`（MANIFEST.json 清单 + `canvases/{id}.json` 每画布原子写 + `.corrupt` 损坏隔离 + 临时文件启动清扫；旧版 `storages/mermaid-canvases/` 启动一次性迁移，只入不覆盖）；无宿主存储 → localStorage 兜底。
+- 落盘：**命名空间目录管理**——`~/.dsh/storages/dsh-flowchart/`（MANIFEST.json 清单 + `canvases/{id}.json` 每画布原子写 + `.corrupt` 损坏隔离 + 临时文件启动清扫；旧版 `storages/mermaid-canvases/` 启动一次性迁移，只入不覆盖）；无宿主存储 → localStorage 兜底。
 
 ---
 
@@ -400,4 +400,4 @@ CLOSED ─open─▶ OPEN ─载入最近文档─▶ READY ─(800ms 自动保�
 10. [ ] 代码生成：形状语法、转义（空格/引号/换行）、方向、默认值省略；多页多块
 11. [ ] 预览浮窗：右上角「代码」「预览」按钮唤起画布内浮窗（头部复制/关闭、右下角拖拽 resize、多页下拉）；渲染成功/错误不白屏、500ms 防抖、渲染器内置（离线可用）
 12. [ ] 复制：浮窗头部按钮（当前页/全部切换）；底栏「插入到会话」= 引导语+代码块（或仅代码档）草稿拼接 + 关闭浮层
-13. [ ] 自动保存 800ms；刷新后重开恢复；`~/.dsh/storages/dsh-mermaid/canvases/{id}.json` 存在且原子写（MANIFEST.json 生成）
+13. [ ] 自动保存 800ms；刷新后重开恢复；`~/.dsh/storages/dsh-flowchart/canvases/{id}.json` 存在且原子写（MANIFEST.json 生成）

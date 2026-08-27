@@ -1,4 +1,4 @@
-// dsh-mermaid components/canvas/EdgeRenderer.js —— 单条箭头渲染（直/弧 + 箭头头 + 标签）
+// dsh-flowchart components/canvas/EdgeRenderer.js —— 单条箭头渲染（直/弧 + 箭头头 + 标签）
 // 事件约定：mousedown 不拦截（冒泡到 svg 由 core/interactions 统一决策——箭头点选），
 //           本组件只处理双击（标签编辑）；选中态锚点圆点由 CanvasStage 在节点层之上渲染（不被控件遮挡）
 import React from 'react'

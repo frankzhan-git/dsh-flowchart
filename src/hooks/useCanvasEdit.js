@@ -1,4 +1,4 @@
-// dsh-mermaid hooks/useCanvasEdit.js —— 编辑动作：文本编辑 / 右键菜单 / 删除 / 补丁 / 粘贴
+// dsh-flowchart hooks/useCanvasEdit.js —— 编辑动作：文本编辑 / 右键菜单 / 删除 / 补丁 / 粘贴
 import React from 'react'
 import { cloneDoc, nextId, PASTE_OFFSET, MAX_ELEMENTS } from '../core/model.js'
 import { t } from '../i18n/index.js'

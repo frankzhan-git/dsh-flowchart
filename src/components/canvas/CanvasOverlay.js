@@ -1,4 +1,4 @@
-// dsh-mermaid components/canvas/CanvasOverlay.js —— 画布内角落按钮 + 浮窗（对齐 wf CanvasOverlay）
+// dsh-flowchart components/canvas/CanvasOverlay.js —— 画布内角落按钮 + 浮窗（对齐 wf CanvasOverlay）
 // 左上角模式徽标｜右上角工具行（代码/预览/设置）｜右下角（撤销/重做/清空 + 缩放%）
 // 浮窗：Mermaid 代码（可复制当前页/全部）/ 渲染预览（内置渲染器，多页下拉切换）
 import React from 'react'

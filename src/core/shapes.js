@@ -1,4 +1,4 @@
-// dsh-mermaid core/shapes.js
+// dsh-flowchart core/shapes.js
 // 职责：14 种 flowchart 形状注册表（id/label/syntax/minSize/render 描述子）
 // 语法以 mermaid 官方文档为准；verify-shapes 用 mermaid.parse 逐项 smoke 兜底（语法漂移守卫）
 // 导出：SHAPE_REGISTRY / SHAPE_IDS / shapeOf / shapeOptions / shapeParts / shapeThumb

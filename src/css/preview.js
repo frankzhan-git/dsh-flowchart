@@ -1,4 +1,4 @@
-// dsh-mermaid css/preview.js —— 代码视图 / 渲染预览
+// dsh-flowchart css/preview.js —— 代码视图 / 渲染预览
 export const PREVIEW_CSS = `
 .mm-codeview {
   margin: 0; padding: 10px 12px; border-radius: 10px;

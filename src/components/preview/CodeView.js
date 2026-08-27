@@ -1,4 +1,4 @@
-// dsh-mermaid components/preview/CodeView.js —— Mermaid 代码视图（只读 + 轻量高亮，无 dangerouslySetInnerHTML）
+// dsh-flowchart components/preview/CodeView.js —— Mermaid 代码视图（只读 + 轻量高亮，无 dangerouslySetInnerHTML）
 import React from 'react'
 
 const el = React.createElement

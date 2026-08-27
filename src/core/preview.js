@@ -1,4 +1,4 @@
-// dsh-mermaid core/preview.js —— 渲染预览（内置渲染器：mermaid 内联进插件 bundle，随插件离线可用）
+// dsh-flowchart core/preview.js —— 渲染预览（内置渲染器：mermaid 内联进插件 bundle，随插件离线可用）
 // 边界：仅 client 侧使用（esbuild 内联 mermaid）
 // 错误洁净：mermaid.render 失败时残留临时 DOM 一并移除
 // 关键：渲染 id 每次唯一（mermaid.render 对重复 id 抛 "already exists" 错误 → 预览反复失败）

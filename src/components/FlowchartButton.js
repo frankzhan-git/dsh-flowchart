@@ -1,4 +1,4 @@
-// dsh-mermaid components/MermaidButton.js —— 槽位按钮（宿主适配层：conversation.input.left）
+// dsh-flowchart components/FlowchartButton.js —— 槽位按钮（宿主适配层：conversation.input.left）
 // 使用 dsh 内置图标库（@deepseek-ai/dsh-client-ui-primitives），与 wf SketchButton 同构
 import React from 'react'
 import { IconBranchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -6,7 +6,7 @@ import { setOpen, getOpen, subscribe } from '../core/store.js'
 
 const el = React.createElement
 
-export function MermaidButton() {
+export function FlowchartButton() {
   const [open, setOpenState] = React.useState(getOpen())
   React.useEffect(() => subscribe(setOpenState), [])
   return el('button', {

@@ -1,4 +1,4 @@
-// dsh-mermaid components/preview/RenderPreview.js —— 渲染预览（内置渲染器：插件内 mermaid.render，500ms 防抖）
+// dsh-flowchart components/preview/RenderPreview.js —— 渲染预览（内置渲染器：插件内 mermaid.render，500ms 防抖）
 import React from 'react'
 import { renderMermaid } from '../../core/preview.js'
 import { t } from '../../i18n/index.js'

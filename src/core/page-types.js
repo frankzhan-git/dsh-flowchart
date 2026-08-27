@@ -1,4 +1,4 @@
-// dsh-mermaid core/page-types.js
+// dsh-flowchart core/page-types.js
 // 职责：页面类型注册表（v1 仅 flowchart 可交互；其它类型注册表预留，标灰不可选）
 // desc：业务语义 + 使用场景（设置面板 hover 浮窗展示；未来新增类型 = 加一行注册）
 export const PAGE_TYPES = [

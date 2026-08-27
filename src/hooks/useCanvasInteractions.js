@@ -1,4 +1,4 @@
-// dsh-mermaid hooks/useCanvasInteractions.js —— 事件适配 + 命令执行（P3）
+// dsh-flowchart hooks/useCanvasInteractions.js —— 事件适配 + 命令执行（P3）
 // 所有决策/计算/结算在 core/interactions 纯函数；本 hook 只做 DOM 事件→state 桥接
 import React from 'react'
 import { CANVAS_W, CANVAS_H, cloneDoc, nextId, PASTE_OFFSET, MAX_ELEMENTS } from '../core/model.js'

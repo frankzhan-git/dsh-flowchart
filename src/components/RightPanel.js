@@ -1,4 +1,4 @@
-// dsh-mermaid components/RightPanel.js —— 右栏编排：设置 + 画布历史（同 wf RightPanel，高度可拖）
+// dsh-flowchart components/RightPanel.js —— 右栏编排：设置 + 画布历史（同 wf RightPanel，高度可拖）
 import React from 'react'
 import { SettingsPanel } from './inspector/SettingsPanel.js'
 import { DocumentPanel } from './docs/DocumentPanel.js'

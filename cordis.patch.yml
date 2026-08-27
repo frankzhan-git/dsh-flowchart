@@ -2,5 +2,5 @@
 # name 即 loader 的模块说明符，必须与 npm 包名 dsh-flowchart 完全一致
 # （并与 scripts/build.mjs 的 banner id 同步）；插件管理器显示名按 dsh- 前缀剥离（显示为 "flowchart"）。
 - insert:
-    - id: dsh-mermaid
+    - id: dsh-flowchart
       name: dsh-flowchart

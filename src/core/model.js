@@ -1,4 +1,4 @@
-// dsh-mermaid core/model.js
+// dsh-flowchart core/model.js
 // 职责：文档（Doc）/页面/节点/边 工厂 + id 分配 + 克隆 + 空文档（纯数据，零 React）
 // 边界：不 import React/DSH；只依赖自身
 // 导出：CANVAS_W/CANVAS_H/MAX_ELEMENTS/PASTE_OFFSET、nextId、reserveSeqs、

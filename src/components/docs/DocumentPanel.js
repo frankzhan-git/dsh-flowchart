@@ -1,4 +1,4 @@
-// dsh-mermaid components/docs/DocumentPanel.js —— 右栏「画布历史」（对齐 dsh-wf DocumentPanel）
+// dsh-flowchart components/docs/DocumentPanel.js —— 右栏「画布历史」（对齐 dsh-wf DocumentPanel）
 // 列表（名称/创建日期）+ 打开 + 重命名（双击名称或 hover「改名」）+ 删除（行内二次确认）+ 导出 + 导入
 import React from 'react'
 import { IconTrashOutline16, IconCloseOutline16, IconDownloadOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'

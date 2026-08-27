@@ -1,4 +1,4 @@
-// dsh-mermaid css 聚合（顺序 = 优先级基线；由 client.js 注入 <style>）
+// dsh-flowchart css 聚合（顺序 = 优先级基线；由 client.js 注入 <style>）
 import { BASE_CSS } from './base.js'
 import { CANVAS_CSS } from './canvas.js'
 import { RIGHTPANEL_CSS } from './rightpanel.js'

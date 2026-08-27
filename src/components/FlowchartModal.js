@@ -1,4 +1,4 @@
-// dsh-mermaid components/MermaidModal.js —— 画板浮层编排（conversation.input.overlay）
+// dsh-flowchart components/FlowchartModal.js —— 画板浮层编排（conversation.input.overlay）
 // 布局对齐 dsh-wf SketchModal：顶栏（新建/全屏/关闭）+ 中栏（画布 + CanvasOverlay | 右栏）
 //           + 底栏（取消 / 插入到会话 + 仅代码切换）+ 右键菜单 + 删除确认 + Toast
 import React from 'react'
@@ -25,7 +25,7 @@ import {
 
 const el = React.createElement
 
-export function MermaidModal(props) {
+export function FlowchartModal(props) {
   const p = props || {}
   const [open, setOpenState] = React.useState(getOpen())
   React.useEffect(() => subscribe(setOpenState), [])

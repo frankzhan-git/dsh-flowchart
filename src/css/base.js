@@ -1,4 +1,4 @@
-// dsh-mermaid css/base.js —— 弹窗壳 / 三栏布局 / 通用按钮 / 右键菜单 / toast
+// dsh-flowchart css/base.js —— 弹窗壳 / 三栏布局 / 通用按钮 / 右键菜单 / toast
 // 配色对齐 dsh-fm/dsh-wf（DSH web 原生弹窗体系：--dsw-alias-* token + fallback）
 export const BASE_CSS = `
 /* 输入框工具行按钮（对齐 wf-input-btn） */

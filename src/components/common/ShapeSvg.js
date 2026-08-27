@@ -1,4 +1,4 @@
-// dsh-mermaid components/common/ShapeSvg.js —— 形状描述子 → SVG 元素（节点渲染 + 缩略图共用）
+// dsh-flowchart components/common/ShapeSvg.js —— 形状描述子 → SVG 元素（节点渲染 + 缩略图共用）
 import React from 'react'
 import { shapeThumb } from '../../core/shapes.js'
 

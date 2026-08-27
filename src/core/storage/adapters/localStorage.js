@@ -1,12 +1,28 @@
-// dsh-mermaid core/storage/adapters/localStorage.js —— 兜底适配器（宿主存储不可用时）
+// dsh-flowchart core/storage/adapters/localStorage.js —— 兜底适配器（宿主存储不可用时）
 // 文档库语义：meta/body 分离 + 增量 patch 全量退化；sync 同步变体（打开画布免闪屏）
-// 键空间：dsh-mermaid:index / dsh-mermaid:body:{id}
+// 键空间：dsh-flowchart:index / dsh-flowchart:body:{id}（旧键空间 dsh-mermaid:* 启动一次性迁移）
 import { migrateFile } from '../migrate.js'
 import { isValidMeta, sanitizeDoc } from '../integrity.js'
 
-const INDEX_KEY = 'dsh-mermaid:index'
+const INDEX_KEY = 'dsh-flowchart:index'
+const LEGACY_PREFIX = 'dsh-mermaid:'
 const CAPACITY_LIMIT = 4 * 1024 * 1024
-const bodyKey = (id) => 'dsh-mermaid:body:' + id
+const bodyKey = (id) => 'dsh-flowchart:body:' + id
+
+// 旧键空间一次性迁移（v0.2.1 及之前使用 dsh-mermaid:index / dsh-mermaid:body:{id}）
+function migrateLegacyKeys() {
+  try {
+    if (localStorage.getItem(INDEX_KEY) != null) return
+    const dead = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith(LEGACY_PREFIX)) dead.push(k)
+    }
+    if (dead.length === 0) return
+    for (const k of dead) localStorage.setItem('dsh-flowchart:' + k.slice(LEGACY_PREFIX.length), localStorage.getItem(k))
+    for (const k of dead) localStorage.removeItem(k)
+  } catch (e) { /* 尽力（容量/隐私模式等） */ }
+}
 
 function readIndex() {
   const raw = localStorage.getItem(INDEX_KEY)
@@ -37,6 +53,7 @@ function readBody(id) {
 }
 
 export function localStorageAdapter() {
+  migrateLegacyKeys()
   const listMeta = async (q) => {
     let items = sortMeta(readIndex())
     const kw = q && q.keyword ? String(q.keyword).trim() : ''
@@ -83,7 +100,7 @@ export function localStorageAdapter() {
     const keys = []
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
-      if (k && k.startsWith('dsh-mermaid:')) keys.push(k)
+      if (k && k.startsWith('dsh-flowchart:')) keys.push(k)
     }
     for (const k of keys) localStorage.removeItem(k)
   }

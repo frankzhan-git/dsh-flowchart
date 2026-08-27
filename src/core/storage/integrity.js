@@ -1,4 +1,4 @@
-// dsh-mermaid core/storage/integrity.js
+// dsh-flowchart core/storage/integrity.js
 // 职责：P5 容错——sanitizeDoc 逐记录清洗（非法丢弃并计数）；isValidMeta 列表条目校验
 // 边界：读取路径永不抛（解析失败由适配器/宿主层隔离）
 const SIDES = ['l', 'r', 't', 'b']

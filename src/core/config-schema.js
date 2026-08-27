@@ -1,4 +1,4 @@
-// dsh-mermaid core/config-schema.js
+// dsh-flowchart core/config-schema.js
 // 职责：codegen 配置默认值表（非默认项才输出 front-matter）+ 透传位说明
 // 面板仅提供业务语义设置（图命名/连线类型/标签）——排序/配色等呈现配置已从面板剔除，
 // 但数据层与 codegen 完整保留（旧数据/高级透传仍正确输出）

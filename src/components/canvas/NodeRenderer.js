@@ -1,4 +1,4 @@
-// dsh-mermaid components/canvas/NodeRenderer.js —— 节点渲染（形状注册表分派；纯展示）
+// dsh-flowchart components/canvas/NodeRenderer.js —— 节点渲染（形状注册表分派；纯展示）
 // 事件约定：mousedown 不拦截（冒泡到 svg 由 core/interactions 统一决策——选择/箭头/移动），
 //           本组件只处理双击（文本编辑）与右键（形状菜单）
 import React from 'react'

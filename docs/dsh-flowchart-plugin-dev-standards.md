@@ -1,6 +1,6 @@
-# dsh-mermaid 开发范式规范
+# dsh-flowchart 开发范式规范
 
-> 适用：dsh-mermaid-plugin 全部代码提交（源码、脚本、文档）。
+> 适用：dsh-flowchart-plugin 全部代码提交（源码、脚本、文档）。
 > 基准：dsh-wf-plugin 的七范式（P1–P7）实施记录 + dsh-fm-plugin 的正式版发布规范。
 > 原则一句话：**新能力 = 注册表加一行；新交互 = 状态机加一个 phase；新副作用 = 命令加一个 op**。
 
@@ -15,7 +15,7 @@
 | 领域层 | `src/core/` | 纯 JS 数据/函数；可 import 同层与 `lib/wire.js`（双端共用例外）、`zod` | React、DOM、`@deepseek-ai/*`、Node API、`fetch`、`localStorage`、`window` |
 | 应用层 | `src/hooks/` | React hooks、状态持有、core 纯函数调用、命令副作用执行 | 业务判断逻辑（进 core）、渲染（进 components） |
 | 表现层 | `src/components/` | 纯渲染 + 回调转发；DSH 图标组件（视为展示资源，wf 审计豁免同款） | 业务判断、状态机、存储调用 |
-| 宿主适配层 | `src/client.js`、`src/components/MermaidButton.js`、`lib/*` | 槽位注册、props 读取、样式注入、i18n 表、@Remote 挂载、线协议 | 画布应用逻辑 |
+| 宿主适配层 | `src/client.js`、`src/components/FlowchartButton.js`、`lib/*` | 槽位注册、props 读取、样式注入、i18n 表、@Remote 挂载、线协议 | 画布应用逻辑 |
 
 ### 1.2 依赖红线（`grep` 审计脚本守护）
 
@@ -29,7 +29,7 @@ src/ 是唯一手写源：lib/client.js 只由 scripts/build.mjs 生成，禁止
 ### 1.3 模块头注释（每个文件必写）
 
 ```js
-// dsh-mermaid core/codegen.js
+// dsh-flowchart core/codegen.js
 // 职责：Doc → Mermaid 代码（front-matter + 语句）纯生成器
 // 边界：零 React/DSH；只依赖 shapes/edge-kinds/config-schema 注册表；字符串输出可单测
 // 导出：buildMermaidCode / validateCode
@@ -78,7 +78,7 @@ src/ 是唯一手写源：lib/client.js 只由 scripts/build.mjs 生成，禁止
 | 颜色/尺寸 | 一律 `--mm-*` token（DSH 主题 token 别名，`src/client.js` 注入），禁止硬编码色值 |
 | i18n | 文案全部走 `t(key, params)` + `src/i18n/index.js` 的 zh 表（key 化预留多语言）；禁止组件内中文字符串字面量（工具文案/错误信息也要 key 化） |
 | 图标 | 仅 DSH 内置图标库（`@deepseek-ai/dsh-client-ui-primitives`），禁止自绘图标 SVG 当按钮 |
-| 中文名 | `cordis.patch.yml name` = `dsh流程图`；`scripts/build.mjs` banner id 必须与之一致；install.ps1 用 code point 构造中文名（防编码问题，同 dsh-fm） |
+| 中文名 | `cordis.patch.yml name` = `dsh-flowchart`；`scripts/build.mjs` banner id 必须与之一致；install.ps1 用 code point 构造中文名（防编码问题，同 dsh-fm） |
 
 ## 8. 安全
 
@@ -113,7 +113,7 @@ src/ 是唯一手写源：lib/client.js 只由 scripts/build.mjs 生成，禁止
 1. `npm run verify` 全绿
 2. `npm run build` 成功（lib/client.js 重构后体积记录进 README）
 3. `npm run test`（node --test）全绿
-4. `node scripts/sync-release.mjs` 同步 `dsh-mermaid-release/`
+4. `node scripts/sync-release.mjs` 同步 `dsh-flowchart-release/`
 5. release 目录：`install.ps1`（Windows 5.1 ASCII 兼容）/ `README.md` / `CHANGELOG.md` / `LICENSE` / `cordis.patch.yml`
 6. 手工安装冒烟：`dsh plugin --profile web add "file:<release>"` → 重启 → 「流程图」按钮出现 → 绘制 → 刷新后文档还原
 7. 版本号 + CHANGELOG 记录（日期、变更、兼容性说明）

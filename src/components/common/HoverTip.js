@@ -1,4 +1,4 @@
-// dsh-mermaid components/common/HoverTip.js —— 通用 hover 浮窗（业务语义解释）
+// dsh-flowchart components/common/HoverTip.js —— 通用 hover 浮窗（业务语义解释）
 // 包裹任意子元素：鼠标划入（或键盘 focus）在元素上方弹出说明浮层；
 // portal 渲染到 body + fixed 定位（不被滚动容器裁剪），展示内容不拦截点击
 // 注意：包裹层必须有盒模型（禁用 display:contents——rect 为零会使浮窗定位失效）

@@ -1,4 +1,4 @@
-// dsh-mermaid components/common/Toast.js —— 浮动提示（纯展示）
+// dsh-flowchart components/common/Toast.js —— 浮动提示（纯展示）
 import React from 'react'
 
 const el = React.createElement

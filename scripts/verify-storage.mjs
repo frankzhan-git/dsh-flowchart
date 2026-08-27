@@ -58,12 +58,12 @@ const store = localStorageAdapter()
 }
 // 3. 损坏隔离（读取不抛）+ isValidMeta
 {
-  localStorage.setItem('dsh-mermaid:body:bad', '{broken')
+  localStorage.setItem('dsh-flowchart:body:bad', '{broken')
   const b = await store.loadBody('bad')
   assert.equal(b, null, '损坏体返回 null')
   assert.equal(isValidMeta({ id: 'x', name: 'n', updatedAt: 't' }), true)
   assert.equal(isValidMeta({ id: 1, name: 'n', updatedAt: 't' }), false)
-  localStorage.removeItem('dsh-mermaid:body:bad')
+  localStorage.removeItem('dsh-flowchart:body:bad')
 }
 // 4. sanitizeDoc：非法记录丢弃 + 孤儿边剔除 + 未知字段保留
 {

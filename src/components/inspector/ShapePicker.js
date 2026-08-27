@@ -1,4 +1,4 @@
-// dsh-mermaid components/inspector/ShapePicker.js —— 14 形状缩略图网格（右键「更换形状」级联菜单）
+// dsh-flowchart components/inspector/ShapePicker.js —— 14 形状缩略图网格（右键「更换形状」级联菜单）
 // 紧凑尺寸：32×16 缩略图、4 列网格、无文字标签（hover title 显示中文名），减少视觉噪音
 import React from 'react'
 import { SHAPE_IDS, shapeOf } from '../../core/shapes.js'

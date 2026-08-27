@@ -1,4 +1,4 @@
-// dsh-mermaid hooks/useToasts.js —— 浮动提示（3s 自消）
+// dsh-flowchart hooks/useToasts.js —— 浮动提示（3s 自消）
 import React from 'react'
 
 export function useToasts(open) {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 (2026) — 全面改名 dsh-flowchart + 数据迁移
+
+- **命名统一**：源码/文档所有 `dsh-mermaid` 标识改为 `dsh-flowchart`——插件行 id、插件 `name`、线协议描述符（`dsh-flowchart#flowchartStorage/*`）、服务名 `flowchartStorage`、远程贡献名、存储命名空间、localStorage 键前缀、error 文案；组件文件同步改名（FlowchartModal/FlowchartButton/flowchart-service）
+- **数据迁移**：旧命名空间 `storages/dsh-mermaid/`（v0.2.1 及之前）启动时整目录改名到 `storages/dsh-flowchart/`（目标已存在则不动作，不覆盖新数据）；旧 MANIFEST（plugin 标识 dsh-mermaid）被接受保留（不当作损坏）；localStorage 旧键 `dsh-mermaid:*` 一次性迁移到 `dsh-flowchart:*`（新键已存在则不迁移）
+- **仓库**：GitHub 仓库重命名为 `frankzhan-git/dsh-flowchart`（旧地址自动 301 重定向）；本地目录/发布目录同步改名
+- **发布**：dsh-flowchart@0.2.2
+
 ## 0.2.1 (2026) — npm 修复：发布包缺失 src
 
 - **修复**：宿主半区 `lib/mermaid-service.js` 运行时会 `import ../src/core/storage/integrity.js`，发布包 `files` 白名单补上 `src`（本地 link: 开发未暴露；npm 版 0.2.0 缺该文件，请升至 0.2.1）

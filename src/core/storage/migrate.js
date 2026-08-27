@@ -1,4 +1,4 @@
-// dsh-mermaid core/storage/migrate.js
+// dsh-flowchart core/storage/migrate.js
 // 职责：CanvasFile 版本链升级（v1 起；升级规则：缺字段补默认，未知字段保留）
 import { CURRENT_SCHEMA_VERSION } from './schema.js'
 

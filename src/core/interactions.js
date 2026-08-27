@@ -1,4 +1,4 @@
-// dsh-mermaid core/interactions.js —— 交互状态机（P3 纯函数：decide → compute → settle）
+// dsh-flowchart core/interactions.js —— 交互状态机（P3 纯函数：decide → compute → settle）
 // 边界：零 React/DSH/localStorage；副作用经 commands 由 hooks 执行
 // Q1 模式即语义：选择模式 边带=箭头(无手柄)；绘制模式 边带=调宽高、角=resize
 // 导出：decidePointerDown / updateDrag / settleDrag / arrowGhost / hoverCursorFor / 常量

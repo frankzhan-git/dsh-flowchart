@@ -1,4 +1,4 @@
-// dsh-mermaid components/canvas/CanvasStage.js —— SVG 相机 + 图层编排（纯展示 + 事件转发）
+// dsh-flowchart components/canvas/CanvasStage.js —— SVG 相机 + 图层编排（纯展示 + 事件转发）
 // 图层：页面底 → 箭头 → 节点 → 吸附/幽灵箭头 → 框选/多选 → 行内文本浮层（foreignObject）
 import React from 'react'
 import { CANVAS_W, CANVAS_H } from '../../core/model.js'

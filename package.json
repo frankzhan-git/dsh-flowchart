@@ -1,12 +1,12 @@
 {
   "name": "dsh-flowchart",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "流程图：会话输入框内绘制 Mermaid 流程图，实时生成标准 Mermaid 代码，一键复制或插入 dsh 会话",
   "license": "MIT",
   "author": "FrankZhan",
   "repository": {
     "type": "git",
-    "url": "https://github.com/frankzhan-git/dsh-mermaid.git"
+    "url": "https://github.com/frankzhan-git/dsh-flowchart.git"
   },
   "keywords": [
     "dsh",

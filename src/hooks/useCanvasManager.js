@@ -1,4 +1,4 @@
-// dsh-mermaid hooks/useCanvasManager.js —— 自动保存 / 文档管理（P7：只认 CanvasStore 接口）
+// dsh-flowchart hooks/useCanvasManager.js —— 自动保存 / 文档管理（P7：只认 CanvasStore 接口）
 import React from 'react'
 import { cloneDoc, freshDoc, reserveSeqs, docStats } from '../core/model.js'
 import { defaultStore, exportCanvasFile, importCanvasFile, fullPatch } from '../core/storage/index.js'

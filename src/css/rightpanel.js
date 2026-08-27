@@ -1,4 +1,4 @@
-// dsh-mermaid css/rightpanel.js —— 右栏（设置 + 画布历史）、设置分区、属性字段、文档列表
+// dsh-flowchart css/rightpanel.js —— 右栏（设置 + 画布历史）、设置分区、属性字段、文档列表
 export const RIGHTPANEL_CSS = `
 /* ⓘ 设置解释图标（无底色，次级文字色，hover 品牌色；保持一致的设计语言） */
 .mm-info {

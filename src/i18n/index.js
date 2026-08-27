@@ -1,4 +1,4 @@
-// dsh-mermaid i18n —— 文案表（zh 默认，key 化预留多语言）
+// dsh-flowchart i18n —— 文案表（zh 默认，key 化预留多语言）
 const ZH = {
   title: 'Mermaid 流程图',
   newTitle: '新建画布',

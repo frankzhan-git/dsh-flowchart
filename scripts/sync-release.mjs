@@ -1,6 +1,6 @@
-// 发布快照同步：dsh-mermaid-plugin 源码 + 构建产物 → dsh-mermaid-release/（免构建安装包）
+// 发布快照同步：dsh-flowchart-plugin 源码 + 构建产物 → dsh-flowchart-release/（免构建安装包）
 // 用法：node scripts/sync-release.mjs [--skip-build]
-// 说明：dsh-mermaid-release 是发布快照（含 install.ps1 专属文件），本脚本只同步插件侧的
+// 说明：dsh-flowchart-release 是发布快照（含 install.ps1 专属文件），本脚本只同步插件侧的
 // 源码与构建产物，install.ps1 / 专属 README 由 release 目录自行维护。
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
@@ -9,7 +9,7 @@ import { execSync } from 'node:child_process'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
-const release = join(root, '..', 'dsh-mermaid-release')
+const release = join(root, '..', 'dsh-flowchart-release')
 
 const COPY_DIRS = ['lib', 'src', 'scripts', 'test']
 const COPY_FILES = ['package.json', 'package-lock.json', 'LICENSE', 'CHANGELOG.md', 'cordis.patch.yml', 'schema.json']

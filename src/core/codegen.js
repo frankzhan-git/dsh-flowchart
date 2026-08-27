@@ -1,4 +1,4 @@
-// dsh-mermaid core/codegen.js —— 代码一等公民（C1：任何状态 → 合法可解析代码）
+// dsh-flowchart core/codegen.js —— 代码一等公民（C1：任何状态 → 合法可解析代码）
 // 管线：normalize（转义/孤儿边剔除/未知形状回退/id sanitize）→ serialize（注册表语法）→ validate（可解析自检；mermaid.parse 由 verify 兜底）
 // 边界：零 React/DSH；只依赖 shapes/edge-kinds/config-schema；输出字符串可单测
 // 导出：buildMermaidDoc / buildPageCode / escapeLabel / buildInsertText / sanitizeNodeId / escapeText

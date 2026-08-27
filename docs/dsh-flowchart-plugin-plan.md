@@ -1,8 +1,8 @@
-# dsh-mermaid 开发计划（M0–M8）
+# dsh-flowchart 开发计划（M0–M8）
 
-> 依据：《dsh-mermaid-plugin-design.md》（产品/交互/已确认决策 Q1–Q5）、《dsh-mermaid-plugin-architecture.md》（架构/数据模型/注册表/存储/里程碑）、《dsh-mermaid-plugin-dev-standards.md》（开发范式规范）
+> 依据：《dsh-flowchart-plugin-design.md》（产品/交互/已确认决策 Q1–Q5）、《dsh-flowchart-plugin-architecture.md》（架构/数据模型/注册表/存储/里程碑）、《dsh-flowchart-plugin-dev-standards.md》（开发范式规范）
 > 参照实现源码：dsh-wf-plugin（交互/存储/宿主半范式）、dsh-fm-plugin（正式版发布链路 + mermaid 内联）
-> 目标：产出可安装、可验证、可交付的正式版插件 `dsh-mermaid`（npm 名），v1 = Flowchart
+> 目标：产出可安装、可验证、可交付的正式版插件 `dsh-flowchart`（npm 名），v1 = Flowchart
 
 ---
 
@@ -23,8 +23,8 @@
 ## 任务拆解（每日粒度）
 
 ### 阶段一：工程与领域层（M0–M1）
-1. `dsh-mermaid-plugin/` 脚手架：`package.json`（name dsh-mermaid，exports ./.client/./cordis.patch.yml，dsh.client.inject 四件套，dsh.bundle.patch，deps zod+mermaid+@deepseek-ai/dsh-typert-protocol，dev esbuild）
-2. `cordis.patch.yml`：`- insert: [{ id: dsh-mermaid, name: dsh流程图 }]`；`scripts/build.mjs`：esbuild → lib/client.js（external react/@deepseek-ai/*，banner id=name）
+1. `dsh-flowchart-plugin/` 脚手架：`package.json`（name dsh-flowchart，exports ./.client/./cordis.patch.yml，dsh.client.inject 四件套，dsh.bundle.patch，deps zod+mermaid+@deepseek-ai/dsh-typert-protocol，dev esbuild）
+2. `cordis.patch.yml`：`- insert: [{ id: dsh-flowchart, name: dsh-flowchart }]`；`scripts/build.mjs`：esbuild → lib/client.js（external react/@deepseek-ai/*，banner id=name）
 3. `src/core/model.js`：Doc/Page/Node/Edge 工厂、id 前缀（p/n/e）+ reserveSeqs、clone、min 尺寸
 4. `src/core/geometry.js`：相机（toLocal/zoomAt/computePan）、命中（handleMetrics/hitEdgeOf/hitPriority，模式即语义）、锚点换算（anchorToWorld）、包围盒、路径采样
 5. `src/core/shapes.js`：14 形状注册表（id/label/syntax/minSize/render）+ shapeThumbs 派生
@@ -39,11 +39,11 @@
 10. `src/core/codegen.js`：normalize→serialize→validate 三段；front-matter config；转义（引号/<br/>）；方向归一；多页分块；`src/core/pipeline.js`：doc→代码 + issues
 11. `src/core/preview.js`：mermaid 封装（initialize strict / render 去临时 DOM / 错误清洗）
 12. `src/components/preview/*`：CodeView（只读+高亮+行号+复制）、RenderPreview（防抖 500ms + 错误摘要）；`src/components/inspector/*`：SettingsPanel（右栏）+ PropField + ShapePicker（缩略图网格）
-13. 插入管线：`buildInsertText`（引导语/仅代码两档）→ inputActions.setDraft（MermaidModal 接 useInput/inputActions，与 wf 一致）
+13. 插入管线：`buildInsertText`（引导语/仅代码两档）→ inputActions.setDraft（FlowchartModal 接 useInput/inputActions，与 wf 一致）
 
 ### 阶段四：存储与宿主（M7）
 14. `src/core/storage/*`：CanvasStore 接口 / schema / migrate / integrity / remote（contribution+createDomainRemote）/ adapters（domain + localStorage）
-15. `lib/wire.js`（zod 单源 + MM_INVOCATIONS）/ `lib/typert.host.js` / `lib/mermaid-service.js`（目录文件原子写/meta 缓存/.corrupt/写链串行）/ `lib/index.js`（ctx.get('typert') 可选）
+15. `lib/wire.js`（zod 单源 + MM_INVOCATIONS）/ `lib/typert.host.js` / `lib/flowchart-service.js`（目录文件原子写/meta 缓存/.corrupt/写链串行）/ `lib/index.js`（ctx.get('typert') 可选）
 16. 右栏：RightPanel（设置 + 画布历史，高度可拖）+ DocumentPanel（最近打开/新建/重命名/删除/导出/导入）
 
 ### 阶段五：验证与交付（M8）

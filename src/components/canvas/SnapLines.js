@@ -1,4 +1,4 @@
-// dsh-mermaid components/canvas/SnapLines.js —— 吸附虚线
+// dsh-flowchart components/canvas/SnapLines.js —— 吸附虚线
 import React from 'react'
 
 const el = React.createElement

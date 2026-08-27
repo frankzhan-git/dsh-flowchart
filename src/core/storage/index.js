@@ -1,4 +1,4 @@
-// dsh-mermaid core/storage/index.js
+// dsh-flowchart core/storage/index.js
 // 职责：存储装配（P7）——业务只认 CanvasStore 接口；probeAdapters 能力探测自动选优
 // 导出：probeAdapters / defaultStore / exportCanvasFile / importCanvasFile / CURRENT_SCHEMA_VERSION / genCanvasId / sanitizeDoc
 import { localStorageAdapter } from './adapters/localStorage.js'
@@ -53,7 +53,7 @@ export async function importCanvasFile(store, file) {
   if (!file || typeof file !== 'object') return { ok: false, reason: '不是有效的画布文件' }
   const cf = migrateFile(file)
   if (!cf || (!Array.isArray(cf.nodes) && !Array.isArray(cf.pages))) {
-    return { ok: false, reason: '文件内容无法识别（需为 dsh-mermaid 画布 JSON）' }
+    return { ok: false, reason: '文件内容无法识别（需为 dsh-flowchart 画布 JSON）' }
   }
   const { doc, dropped } = sanitizeDoc(cf)
   const id = genCanvasId()

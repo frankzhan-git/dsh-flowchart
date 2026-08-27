@@ -1,4 +1,4 @@
-// dsh-mermaid core/storage/schema.js
+// dsh-flowchart core/storage/schema.js
 // 职责：CanvasFile 版本常量 + 画布 id 工厂 + 新文件工厂
 export const CURRENT_SCHEMA_VERSION = 1
 

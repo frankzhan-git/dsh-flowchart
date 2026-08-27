@@ -1,4 +1,4 @@
-// dsh-mermaid core/edge-kinds.js
+// dsh-flowchart core/edge-kinds.js
 // 职责：边类型注册表（id/label/语法片段/渲染样式/语义描述）；未来 --o/--x/--* 等 = 加行即得
 // desc：连线语义 + 使用场景（设置面板 hover 浮窗）
 export const EDGE_KINDS = {

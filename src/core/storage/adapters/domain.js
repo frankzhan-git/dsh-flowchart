@@ -1,5 +1,5 @@
-// dsh-mermaid core/storage/adapters/domain.js —— 宿主目录文件适配器（现役）
-// CanvasStore 契约 → remote.mermaidStorage；ready = remote 可用，probeAdapters 自动升级
+// dsh-flowchart core/storage/adapters/domain.js —— 宿主目录文件适配器（现役）
+// CanvasStore 契约 → remote.flowchartStorage；ready = remote 可用，probeAdapters 自动升级
 export function domainAdapter(remote) {
   const call = remote && typeof remote.call === 'function' ? remote.call.bind(remote) : null
   const invoke = async (method, args, fallback) => {

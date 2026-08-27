@@ -1,4 +1,4 @@
-// dsh-mermaid core/pipeline.js
+// dsh-flowchart core/pipeline.js
 // 职责：doc → 每页 Mermaid 代码 + issues（纯函数；hooks 侧 useMemo 绑定）
 import { buildMermaidDoc } from './codegen.js'
 
