@@ -7,9 +7,9 @@ import { dirname, join } from 'node:path'
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 
-// banner id 必须与 cordis.patch.yml 中的 name 一致（dsh流程图）
+// banner id 必须与 cordis.patch.yml 中的 name 一致（dsh-flowchart）
 const banner = `window.__ModuleLoader__.load({
-  id: "dsh流程图",
+  id: "dsh-flowchart",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;

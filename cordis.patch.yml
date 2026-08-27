@@ -1,7 +1,6 @@
-# dsh-mermaid bundle patch — 作为 profile bundle 层应用
-# name 即 loader 的模块说明符（同时决定插件管理器显示名，显示时去掉 dsh- 前缀）。
-# 依赖键必须保持合法 npm 名 "dsh-mermaid"（pnpm 拒绝中文依赖键）；
-# 中文说明符 "dsh流程图" 通过 ~/.dsh/profiles/node_modules/ 下的目录联接解析到本包。
+# dsh-flowchart bundle patch — 作为 profile bundle 层应用
+# name 即 loader 的模块说明符，必须与 npm 包名 dsh-flowchart 完全一致
+# （并与 scripts/build.mjs 的 banner id 同步）；插件管理器显示名按 dsh- 前缀剥离（显示为 "flowchart"）。
 - insert:
     - id: dsh-mermaid
-      name: dsh流程图
+      name: dsh-flowchart

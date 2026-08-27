@@ -4,7 +4,7 @@
 >
 > 画布是输入方式，**Mermaid 代码是唯一产物**（一等公民：任何画布状态恒产出可解析的标准代码，不发明私有扩展）。
 
-[![v0.1.0](https://img.shields.io/badge/version-v0.1.0-2f6feb)](https://github.com/frankzhan-git/dsh-mermaid)
+[![v0.2.1](https://img.shields.io/badge/version-v0.2.1-2f6feb)](https://github.com/frankzhan-git/dsh-mermaid)
 [![verify](https://github.com/frankzhan-git/dsh-mermaid/actions/workflows/verify.yml/badge.svg)](https://github.com/frankzhan-git/dsh-mermaid/actions/workflows/verify.yml)
 
 dsh-mermaid 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插件：会话输入框工具行点「流程图」唤起画板，绘制流程节点与箭头，画布**实时翻译为标准 Mermaid 代码**——带主题/方向/间距配置的 `flowchart` 图，可复制、可在插件内渲染预览（渲染器内置，离线可用）、可一键插入会话输入框随需求发给 agent。
@@ -35,42 +35,24 @@ dsh-mermaid 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插�
 
 ---
 
-## 🚀 安装（新环境）
+## 🚀 安装（npm）
 
 **前置**：已安装 DSH（`dsh` 在 PATH）、Node ≥ 20、pnpm。
 
 ```powershell
-# 0. 获取代码（GitHub）
-git clone https://github.com/frankzhan-git/dsh-mermaid.git
-cd dsh-mermaid
-
-# 1. 安装依赖并构建（仓库已提交构建产物 lib/client.js，跳过构建也可）
-npm install
-npm run build
-
-# 2. 安装到 DSH profile（官方命令）
-dsh plugin --profile web add "dsh-mermaid@file:<本目录绝对路径>"
-
-# 3. 中文显示名目录联接（必须！pnpm 不接受中文依赖键）
-cmd /c mklink /J "%USERPROFILE%\.dsh\profiles\node_modules\dsh流程图" "%USERPROFILE%\.dsh\profiles\web\node_modules\dsh-mermaid"
-
-# 4. 确认 bundles 列表包含 dsh-mermaid（dsh plugin add 通常自动处理）
-#    %USERPROFILE%\.dsh\profiles\web\package.json → "dsh": { "profile": { "bundles": [..., "dsh-mermaid"] } }
-
-# 5. 验证注册
-dsh --profile web --dump-config | findstr dsh-mermaid
-
-# 6. 重启 DSH 并刷新页面 → 输入框工具行出现「流程图」
+dsh plugin --profile web add dsh-flowchart
 ```
 
-> **不用中文显示名？** 把 `cordis.patch.yml` 的 `name` 与 `scripts/build.mjs` 的 banner id 都改为 `dsh-mermaid` 后重新构建，即可跳过第 3 步。
+`dsh plugin` 自动安装依赖并加入 `dsh.profile.bundles`；重启 DSH 后输入框工具行出现「流程图」按钮（插件管理器显示名 "flowchart"）。
+
+> 从源码安装：`git clone https://github.com/frankzhan-git/dsh-mermaid.git && cd dsh-mermaid && npm install && npm run build`，再 `dsh plugin --profile web add "file:<克隆目录绝对路径>"`。
 
 **常见问题**
 
 | 现象 | 解决 |
 |---|---|
-| 按钮不出现 | 第 3 步 junction 缺失 / 第 4 步 bundles 漏加 → 补齐后重启 |
-| 控制台 `Cannot find module 'dsh流程图'` | banner id 与 patch name 不一致 → 重新构建 |
+| 按钮不出现 | 确认 `dsh plugin add` 成功且 bundles 含 `dsh-flowchart` → 重启 DSH |
+| 控制台 `Cannot find module` | banner id 与 patch name 不一致 → 重新构建 |
 | 保存失败 toast | 宿主存储未生效（需 web profile 含 api-remotes）；或自动降级 localStorage（不影响使用） |
 | 画布数据在 `~/.dsh/storages/dsh-mermaid/` | 宿主存储正常（MANIFEST.json + canvases/{id}.json；旧版 mermaid-canvases/ 自动迁移） |
 

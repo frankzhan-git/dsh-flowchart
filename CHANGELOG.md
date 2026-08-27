@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1 (2026) — npm 修复：发布包缺失 src
+
+- **修复**：宿主半区 `lib/mermaid-service.js` 运行时会 `import ../src/core/storage/integrity.js`，发布包 `files` 白名单补上 `src`（本地 link: 开发未暴露；npm 版 0.2.0 缺该文件，请升至 0.2.1）
+- **发布**：dsh-flowchart@0.2.1
+
+## 0.2.0 (2026) — npm 首发 + 改名
+
+- **包名**：`dsh-mermaid` → `dsh-flowchart`（npm 上 `dsh-mermaid` 已被占用）；模块名 `dsh流程图` → `dsh-flowchart`（patch name + build.mjs banner id 同步）
+- **package.json**：移除 `private`，新增 license（MIT）/repository/author/keywords/engines/files；`mermaid` 移至 devDependencies（client 已内联）
+- **发布**：首次发布 npm（dsh-flowchart@0.2.0）
+
 ## 0.1.0 (2025-12)
 
 正式版首个版本（对齐产品设计 Q1–Q5 定稿 + 七范式架构）：
