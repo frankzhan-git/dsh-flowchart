@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.5 (2026) — 跨实例互通修复（移除 meta 缓存）
+
+- **fix(跨实例)**：`listMeta`/`getMeta` 不再读「启动时扫描的内存 cache」——改为**每次实时读磁盘**（`readAllMeta`/`readMetaOf`）。此前单实例自写自读自洽，但**跨实例写入（如 :3080 写 → :3090）永远不可见**，导致「另一端口画的画布刷新后看不到」。移除后同一 `DSH_HOME` 下任一端口的写入，对所有端口的下一步读取立即可见（写入方落盘 = 全局可见点）。
+- **fix(一致性)**：`saveMeta`/`saveBody`/`remove`/`clear` 不再维护 cache（读-改-写仍经写队列保证原子性）；损坏隔离/临时清扫行为不变。
+- **chore**：verify 8 套件 + 网关级预验证全绿。
+- **发布**：dsh-flowchart@0.2.5
+
 ## 0.2.4 (2026) — 存储管线贯通 + 官方范式重构
 
 - **fix(新建崩溃)**：`useCanvasInteractions` 返回对象缺失 `setSnapLines`，导致「新建画布」即刻 TypeError（任何存储调用之前）——补齐导出。
