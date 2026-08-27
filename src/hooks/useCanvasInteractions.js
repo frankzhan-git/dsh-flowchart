@@ -127,7 +127,7 @@ export function useCanvasInteractions(deps) {
         if (hoverAnchorRef.current) { hoverAnchorRef.current = null; setHoverAnchor(null) }
         return
       }
-      const c = hoverCursorFor({ doc: docRef.current, mode: modeRef.current, zoom, selectedEdge }, x, y)
+      const c = hoverCursorFor({ doc: docRef.current, mode: modeRef.current, zoom, selectedEdge, selectedIds }, x, y)
       if (c !== hoverCursorRef.current) {
         hoverCursorRef.current = c
         setHoverCursor(c)
@@ -146,6 +146,8 @@ export function useCanvasInteractions(deps) {
     }
     const r = updateDrag({ doc, zoom, selectedIds, rect }, drag, x, y, ev.clientX, ev.clientY)
     if (r.pan) { setPan(r.pan); return }
+    if (r.createCover !== undefined) setDrag((dr) => (dr ? Object.assign({}, dr, { cover: r.createCover }) : dr))
+    if (r.groupHover !== undefined) setDrag((dr) => (dr ? Object.assign({}, dr, { groupHover: r.groupHover }) : dr))
     if (r.patch) {
       const targetId = drag.mode === 'pageCreate' || drag.mode === 'nodeCreate' ? drag.tmpId : drag.id
       setDoc((d) => applyRecordPatch(d, drag.mode, targetId, r.patch))
@@ -184,6 +186,29 @@ export function useCanvasInteractions(deps) {
     } else if (r.patch) {
       setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => (n.id === r.patch.id ? r.patch : n)) }))
     }
+    // 组合结算：创建成组（groupPatch）/ 拖入拖出归一（adjustments + groupPatches + childBinds）
+    if (r.groupPatch) {
+      const gp = r.groupPatch
+      setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => (n.id === gp.id ? gp : n)) }))
+    }
+    if (r.adjustments && r.adjustments.length) {
+      const adj = new Map(r.adjustments.map((a) => [a.id, a]))
+      setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => {
+        const a = adj.get(n.id)
+        return a ? { ...n, x: a.x, y: a.y } : n
+      }) }))
+    }
+    if (r.groupPatches && r.groupPatches.length) {
+      const gp = new Map(r.groupPatches.map((g) => [g.id, g]))
+      setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => {
+        const g = gp.get(n.id)
+        return g ? { ...n, x: g.x, y: g.y, w: g.w, h: g.h } : n
+      }) }))
+    }
+    if (r.childBinds && r.childBinds.length) {
+      const cb = new Map(r.childBinds.map((b) => [b.id, b.children]))
+      setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => (cb.has(n.id) ? { ...n, children: cb.get(n.id) } : n)) }))
+    }
     if (r.edge) {
       setDoc((d) => ({ ...d, edges: d.edges.concat([r.edge]) }))
     }
@@ -196,6 +221,7 @@ export function useCanvasInteractions(deps) {
     }
     if (r.selection !== undefined) applySelection(r.selection, r.selEdge || null)
     else if (r.selEdge !== undefined && r.selEdge !== null) applySelection([], r.selEdge)
+    else if (r.select !== undefined) applySelection(r.select, null)
     if (r.commit && drag.prev) commitHistory(drag.prev)
     setDrag(null)
     setSnapLines([])
@@ -398,7 +424,8 @@ function applyRecordPatch(doc, mode, id, patch) {
   return { ...doc, nodes: doc.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) }
 }
 
-// patches: [{id:'page:p1'|nodeId, x,y,w?,h?}]
+// patches: [{id:'page:p1'|nodeId, x?,y?,w?,h?}] —— 未给出的字段保留原值
+// （批量边调整只带 w/h 或 x/y，缺省字段绝不写 undefined，否则控件会漂移到原点）
 function applyPatches(doc, patches) {
   const pages = new Map(doc.pages.map((p) => [p.id, p]))
   const nodes = new Map(doc.nodes.map((n) => [n.id, n]))
@@ -406,10 +433,20 @@ function applyPatches(doc, patches) {
     if (p.id.startsWith('page:')) {
       const id = p.id.slice(5)
       const cur = pages.get(id)
-      if (cur) pages.set(id, { ...cur, x: p.x, y: p.y })
+      if (cur) pages.set(id, {
+        ...cur,
+        x: p.x !== undefined ? p.x : cur.x,
+        y: p.y !== undefined ? p.y : cur.y,
+      })
     } else {
       const cur = nodes.get(p.id)
-      if (cur) nodes.set(p.id, { ...cur, x: p.x, y: p.y, w: p.w !== undefined ? p.w : cur.w, h: p.h !== undefined ? p.h : cur.h })
+      if (cur) nodes.set(p.id, {
+        ...cur,
+        x: p.x !== undefined ? p.x : cur.x,
+        y: p.y !== undefined ? p.y : cur.y,
+        w: p.w !== undefined ? p.w : cur.w,
+        h: p.h !== undefined ? p.h : cur.h,
+      })
     }
   }
   return { ...doc, pages: doc.pages.map((p) => pages.get(p.id)), nodes: doc.nodes.map((n) => nodes.get(n.id)) }

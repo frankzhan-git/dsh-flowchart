@@ -37,6 +37,7 @@ const ZH = {
   floatResize: '拖动调整面板大小',
   docList: '画布历史',
   docNew: '新建',
+  refreshCanvas: '刷新',
   docExport: '导出',
   docImport: '导入',
   docRename: '重命名',

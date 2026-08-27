@@ -310,6 +310,7 @@ export function FlowchartModal(props) {
             canClear: !!(sketch.doc.nodes.length || sketch.doc.edges.length),
             onUndo: sketch.undo, onRedo: sketch.redo, onClear: manager.clearAll,
             panelOpen, onTogglePanel: () => setPanelOpen(!panelOpen),
+            onReload: manager.reloadCurrent,
             showToast,
           }),
         ),

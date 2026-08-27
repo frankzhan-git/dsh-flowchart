@@ -4,7 +4,7 @@
 >
 > 画布是输入方式，**Mermaid 代码是唯一产物**（一等公民：任何画布状态恒产出可解析的标准代码，不发明私有扩展）。
 
-[![v0.2.6](https://img.shields.io/badge/version-v0.2.6-2f6feb)](https://github.com/frankzhan-git/dsh-flowchart)
+[![v0.2.7](https://img.shields.io/badge/version-v0.2.7-2f6feb)](https://github.com/frankzhan-git/dsh-flowchart)
 [![verify](https://github.com/frankzhan-git/dsh-flowchart/actions/workflows/verify.yml/badge.svg)](https://github.com/frankzhan-git/dsh-flowchart/actions/workflows/verify.yml)
 
 dsh-flowchart 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式插件：会话输入框工具行点「流程图」唤起画板，绘制流程节点与箭头，画布**实时翻译为标准 Mermaid 代码**——带主题/方向/间距配置的 `flowchart` 图，可复制、可在插件内渲染预览（渲染器内置，离线可用）、可一键插入会话输入框随需求发给 agent。
@@ -24,8 +24,9 @@ dsh-flowchart 是 [DeepSeek Harness](https://github.com/deepseek-ai) 的正式�
 - **14 种 Flowchart 形状**：矩形/圆角/跑道/子程序/数据库/圆形/双圆/旗形/菱形/六边形/平行四边形×2/梯形×2（右键缩略图菜单 + 设置面板，语法与 mermaid 官方一致）
 - **箭头一等公民**：选择模式贴边拖 = 画箭头（同页吸附连接、跨页红叉取消、起终点锚点归一化、随节点移动自动跟随）；直/弧按进出边对接自动判断；点击选中、`Backspace`/`Delete` 删除、双击编辑居中标签；**选中后首尾出现实心圆点，可按住圆点沿控件边挪动锚点**（脱离吸附松开 = 取消连线）
 - **模式即语义（Q1）**：选择模式贴边 = 箭头（无手柄）；绘制模式贴边 = 调整宽高、右下角 = resize
+- **组合控件（P8）**：绘制矩形覆盖其他控件 → 松开**自动成组**（组合矩形透明化、成员整体框选）；拖入归组（亮边框反馈，组自动扩展至完全包裹）、拖出解除归属；拖动组合 = 成员整体跟随，组合 resize = 成员等比缩放；**组合文本显示在矩形顶部**（左右居中、与顶边留间距）；代码输出 mermaid `subgraph`（成员递归嵌套）；删除组合只删外框、成员保留散出
 - **文本**：双击节点编辑（上下左右居中、`Shift+Enter` 换行 → `<br/>`，随 htmlLabels 配置）
-- **画布交互**：平移（空格+拖）/ 缩放（滚轮，右下角 `%` 一键还原）/ 撤销重做 / 框选 / 批量移动 / 批量宽高 / 批量等比缩放
+- **画布交互**：平移（空格+拖）/ 缩放（滚轮，右下角 `%` 一键还原）/ 撤销重做 / 框选 / 批量移动 / **批量宽高（外框任意一边）/ 批量等比缩放（右下角）**——选择/绘制两种模式语义一致，全体选中控件跟随
 - **代码一等公民（C1–C3）**：任意状态 → `mermaid.parse` 可解析代码；实时刷新；仅输出官方语法 + 非默认配置（front-matter）
 - **两个预览浮窗**（画布右上角按钮，画布内浮窗 + 可多页切换）：Mermaid 代码（复制全部）、渲染预览（内置 mermaid 渲染器）
 - **插入会话**：引导语 + ```mermaid 代码块（可切「仅代码」档），`inputActions.setDraft` 写入草稿
@@ -75,7 +76,8 @@ dsh plugin --profile web add dsh-flowchart
 | 移动节点 | 选择/绘制模式按住主体拖动（不可拖出页面） |
 | 画箭头 | 选择模式按住节点边带拖动（同页吸附；跨页取消） |
 | 改尺寸 | 绘制模式贴边拖（宽高）、四角手柄（resize） |
-| 批量操作 | 空白处框选（完全包含）→ 组内拖动=整体移动；拖外框四边=批量宽高；拖右下角=批量等比 |
+| 批量操作 | 空白处框选（完全包含）→ 组内拖动=整体移动；拖外框任意一边=批量宽高（拖上/左边时对缘固定）；拖右下角=批量等比；两种模式下语义一致，全员跟随 |
+| 组合控件 | 绘制模式画矩形覆盖控件=松开成组；拖控件入组=归组（组自动扩展）；拖出组外=解除；拖组合=整体移动；组合右下角=成员等比缩放；双击改文本（画布中显示于顶部居中） |
 | 撤销/重做 | `Ctrl+Z` / `Ctrl+Shift+Z`（`Ctrl+Y`） |
 | 复制/粘贴 | `Ctrl+C` / `Ctrl+V`（节点，偏移 +24） |
 | 删除 | `Backspace` / `Delete`（页面 > 箭头 > 节点优先级删除） |
@@ -100,13 +102,14 @@ dsh-flowchart/
 │   │   ├── geometry.js   #   相机/命中/锚点/箭头几何（直弧判定、贝塞尔）
 │   │   ├── interactions.js # 交互状态机（CREATE*/MOVE/RESIZE/ARROW/ANCHOR/MARQUEE/GROUP_*）
 │   │   ├── shapes.js     #   14 形状注册表（syntax/minSize/渲染描述子/缩略图）
+│   │   ├── grouping.js   #   组合控件纯函数（成组/包裹不变式/拖入拖出归一/推离/渲染排序）
 │   │   ├── codegen.js    #   ★ normalize→serialize→validate（C1：恒合法）
 │   │   ├── pipeline.js preview.js（mermaid 封装）
 │   │   └── storage/      #   CanvasStore 接口 + domain/localStorage 适配器 + 清洗/迁移
 │   ├── hooks/            # useDocState/useCanvasInteractions/useCanvasEdit/useCanvasManager/usePreview
 │   ├── components/       # 画布组件（CanvasStage/Overlay/NodeRenderer/EdgeRenderer/...）+ 右栏 + 浮窗
 │   ├── i18n/ css/        # 文案表（zh）/ --mm-* token 样式
-├── scripts/              # build.mjs + 7 套验证（npm run verify 一键全绿）
+├── scripts/              # build.mjs + 9 套验证（npm run verify 一键全绿）
 ├── schema.json           # 画布数据契约 Schema（与注册表一致性由测试守护）
 ```
 
@@ -117,17 +120,19 @@ dsh-flowchart/
 ## 🧪 验证
 
 ```bash
-npm run verify   # 7 套件一键全绿
+npm run verify   # 9 套件一键全绿
 ```
 
 | 套件 | 覆盖 |
 |---|---|
 | verify-shapes | 14 形状注册完整性 + mermaid.parse 逐形状 smoke（尽力） |
 | verify-codegen | 形状语法/转义（引号/换行/特殊字符）/方向归一/默认值省略/多页/孤儿边 issue/插入文本 |
-| verify-interactions | 模式即语义（Q1）/箭头吸附/跨页取消/锚点随动/锚点微调/页面钳制/框选/组边组角批量/四角 resize/直弧判定 |
+| verify-interactions | 模式即语义（Q1）/箭头吸附/跨页取消/锚点随动/锚点微调/页面钳制/框选/批量边带（四边×两模式，全员跟随）/批量等比/组内语义/四角 resize/直弧判定 |
 | verify-storage | meta/body 往返/增量 patch/排序分页/损坏隔离/清洗/导入导出/迁移 |
 | verify-host-storage | 宿主命名空间目录全流程（内存 fs）：MANIFEST/原子写/合并/.corrupt/tmp 清扫/旧目录迁移/清洗 |
 | verify-adapter-contract | CanvasStore 契约形状/降级顺序（domain > localStorage）/sync 变体 |
+| verify-protocol | 宿主线协议贡献与客户端 descriptors 一致性（wire.js 单源） |
+| verify-grouping | 组合几何/绘制成组/拖入扩展/拖出解除/推离/渲染排序/subgraph 输出 |
 | verify-perf | 300 节点 + 200 边：codegen < 50ms、sanitize < 100ms |
 
 ## 📄 文档

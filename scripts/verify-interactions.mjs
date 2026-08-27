@@ -154,17 +154,97 @@ const ctx = (doc, extra) => Object.assign({ doc, mode: 'select', zoom: 1, select
   assert.equal(r.selection.length, 2, '完全包含两节点')
   assert.equal(r.selEdge, e.id, '两端点在框内 → 箭头入选')
 }
-// 8. 批量：组边改宽高 / 右下角等比
+// 8. 批量：外框边批量宽高（四边、两种模式一致）/ 右下角等比；成员位置正确、只改应改字段
 {
   const doc = mkDoc()
   const ids = doc.nodes.map((n) => n.id)
   const gb = groupBounds(doc.nodes, ids)
-  const drag = { mode: 'groupEdgeResize', sx: 0, sy: 0, gb, side: 'r', lastDx: 0, lastDy: 0 }
-  const r = updateDrag(ctx(doc, { selectedIds: ids }), drag, gb.x + gb.w + 20, gb.y + gb.h / 2, 0, 0)
-  assert.ok(r.patches.every((p) => p.w > 0), '组边批量宽高 patch')
-  const drag2 = { mode: 'groupCornerResize', sx: 0, sy: 0, gb }
-  const r2 = updateDrag(ctx(doc, { selectedIds: ids }), drag2, gb.x + gb.w * 2, gb.y + gb.h * 2, 0, 0)
-  assert.ok(r2.patches.every((p) => p.w > 0 && p.h > 0 && p.x >= gb.x), '组角等比 patch（锚定左上）')
+  const members = ids.map((id) => {
+    const m = doc.nodes.find((n) => n.id === id)
+    return { id, x: m.x, y: m.y, w: m.w, h: m.h, shape: m.shape }
+  })
+  const applyLikeHook = (patches) => doc.nodes.map((n) => {
+    const p = patches.find((q) => q.id === n.id)
+    if (!p) return n
+    return {
+      ...n,
+      x: p.x !== undefined ? p.x : n.x,
+      y: p.y !== undefined ? p.y : n.y,
+      w: p.w !== undefined ? p.w : n.w,
+      h: p.h !== undefined ? p.h : n.h,
+    }
+  })
+  // 命中：两种模式的外框边带/右下角都进入批量语义（绘制模式不再被单控件命中劫持）
+  for (const mode of ['select', 'draw']) {
+    const dr = decidePointerDown(ctx(doc, { mode, selectedIds: ids }), gb.x + gb.w, gb.y + gb.h / 2, 0, 0)
+    assert.equal(dr.kind, 'groupEdgeResize', mode + ' 模式外框右边带 → 批量宽高')
+    assert.equal(dr.drag.side, 'r', mode + ' 模式外框右边带 side=r')
+    const dc = decidePointerDown(ctx(doc, { mode, selectedIds: ids }), gb.x + gb.w + 5, gb.y + gb.h + 5, 0, 0)
+    assert.equal(dc.kind, 'groupCornerResize', mode + ' 模式外框右下角 → 批量等比')
+    const dt = decidePointerDown(ctx(doc, { mode, selectedIds: ids }), gb.x + gb.w / 2, gb.y, 0, 0)
+    assert.equal(dt.kind, 'groupEdgeResize', mode + ' 模式外框上边带 → 批量宽高')
+    assert.equal(dt.drag.side, 't', mode + ' 模式外框上边带 side=t')
+  }
+  // 右边带 +30：全员 w 增大；补丁不含 x/y（应用层保留原位置——不得漂移到原点）
+  const r = updateDrag(ctx(doc, { selectedIds: ids }),
+    { mode: 'groupEdgeResize', sx: gb.x + gb.w, sy: gb.y + gb.h / 2, gb, side: 'r', members },
+    gb.x + gb.w + 30, gb.y + gb.h / 2, 0, 0)
+  assert.equal(r.patches.length, ids.length, '右边带：每个选中成员都有补丁')
+  assert.ok(r.patches.every((p) => p.w > 0 && p.x === undefined && p.y === undefined), '右边带补丁只带 w')
+  const afterR = applyLikeHook(r.patches)
+  assert.ok(afterR.every((n, i) => n.x === members[i].x && n.y === members[i].y && n.w === members[i].w + 30),
+    '右边带：位置保留、全员 w +30')
+  // 左边带 -15（向外拖，未触及页面边界）：全员 x -15、w +15、右缘固定
+  const l = updateDrag(ctx(doc, { selectedIds: ids }),
+    { mode: 'groupEdgeResize', sx: gb.x, sy: gb.y + gb.h / 2, gb, side: 'l', members },
+    gb.x - 15, gb.y + gb.h / 2, 0, 0)
+  assert.ok(l.patches.every((p, i) => Math.abs((p.x + p.w) - (members[i].x + members[i].w)) < 0.01 && p.w === members[i].w + 15),
+    '左边带：x 随动、w 反向增减、右缘固定')
+  // 上边带 -20（向外拖）：全员 y -20、h +20、底缘固定
+  const t = updateDrag(ctx(doc, { selectedIds: ids }),
+    { mode: 'groupEdgeResize', sx: gb.x + gb.w / 2, sy: gb.y, gb, side: 't', members },
+    gb.x + gb.w / 2, gb.y - 20, 0, 0)
+  assert.ok(t.patches.every((p, i) => Math.abs((p.y + p.h) - (members[i].y + members[i].h)) < 0.01 && p.h === members[i].h + 20),
+    '上边带：y 随动、h 反向增减、底缘固定')
+  // 下边带 +20：全员 h +20、y 不变
+  const b = updateDrag(ctx(doc, { selectedIds: ids }),
+    { mode: 'groupEdgeResize', sx: gb.x + gb.w / 2, sy: gb.y + gb.h, gb, side: 'b', members },
+    gb.x + gb.w / 2, gb.y + gb.h + 20, 0, 0)
+  assert.ok(b.patches.every((p) => p.h > 0 && p.x === undefined && p.y === undefined), '下边带补丁只带 h')
+  // 最小尺寸钳制（左边带向右推过头 → w = min.w，x 锚定右缘）
+  const lmin = updateDrag(ctx(doc, { selectedIds: ids }),
+    { mode: 'groupEdgeResize', sx: gb.x, sy: gb.y + gb.h / 2, gb, side: 'l', members },
+    gb.x + 500, gb.y + gb.h / 2, 0, 0)
+  assert.ok(lmin.patches.every((p, i) => p.w > 0 && Math.abs((p.x + p.w) - (members[i].x + members[i].w)) < 0.01),
+    '左边带最小尺寸：w 钳制且右缘不越界')
+  // 右下角等比：全员完整 x/y/w/h 补丁，锚定左上（不小于原点侧）
+  const r2 = updateDrag(ctx(doc, { selectedIds: ids }),
+    { mode: 'groupCornerResize', sx: gb.x + gb.w, sy: gb.y + gb.h, gb, members },
+    gb.x + gb.w * 2, gb.y + gb.h * 2, 0, 0)
+  assert.ok(r2.patches.every((p) => p.w > 0 && p.h > 0 && p.x >= gb.x && p.y >= gb.y), '组角等比 patch（锚定左上）')
+  // 绘制模式组内语义：内部控件边带 = 单控件 resize；未选中主体 = 单选移动；选中主体/空白 = 组移动
+  const doc3 = mkDoc()
+  const a3 = doc3.nodes[0]
+  const b3 = doc3.nodes[1]
+  const c3 = createNode(doc3.pages[0].id, 'rectangle', 150, 80, 60, 30)
+  doc3.nodes.push(c3)
+  const ids3 = [a3.id, b3.id]
+  const dEdge = decidePointerDown(ctx(doc3, { mode: 'draw', selectedIds: ids3 }), b3.x, b3.y + 1, 0, 0)
+  assert.equal(dEdge.kind, 'resize', '绘制模式内部控件边带 → 单控件 resize（不劫持）')
+  assert.equal(dEdge.drag.id, b3.id, '单控件 resize 目标 = 内部控件')
+  const dBlank = decidePointerDown(ctx(doc3, { mode: 'draw', selectedIds: ids3 }), 200, 40, 0, 0)
+  assert.equal(dBlank.kind, 'nodeMove', '绘制模式组内空白 → 组移动（不再建节点）')
+  assert.equal(dBlank.drag.multi, true, '组内空白 → 多选移动')
+  const dUnsel = decidePointerDown(ctx(doc3, { mode: 'draw', selectedIds: ids3 }), c3.x + c3.w / 2, c3.y + c3.h / 2, 0, 0)
+  assert.equal(dUnsel.kind, 'nodeMove', '绘制模式未选中主体 → 单选移动')
+  assert.deepEqual(dUnsel.sel, [c3.id], '未选中主体 → 仅选中该控件')
+  assert.equal(dUnsel.drag.multi, false, '未选中主体 → 非多选移动')
+  const dSelBody = decidePointerDown(ctx(doc3, { mode: 'select', selectedIds: ids3 }), a3.x + a3.w / 2, a3.y + a3.h / 2, 0, 0)
+  assert.equal(dSelBody.drag.multi, true, '选择模式选中主体 → 组移动')
+  // hover 光标：外框边带/角 → 方向光标（两种模式一致）
+  assert.equal(hoverCursorFor(ctx(doc, { selectedIds: ids }), gb.x + gb.w, gb.y + gb.h / 2), 'ew-resize', '外框右边带 → ew-resize')
+  assert.equal(hoverCursorFor(ctx(doc, { selectedIds: ids, mode: 'draw' }), gb.x + gb.w / 2, gb.y), 'ns-resize', '外框上边带（绘制）→ ns-resize')
+  assert.equal(hoverCursorFor(ctx(doc, { selectedIds: ids, mode: 'draw' }), gb.x + gb.w + 5, gb.y + gb.h + 5), 'nwse-resize', '外框右下角（绘制）→ nwse-resize')
 }
 // 9. id 唯一性（reserveSeqs / nextId）
 {

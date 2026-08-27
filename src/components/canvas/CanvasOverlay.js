@@ -16,7 +16,7 @@ export function CanvasOverlay(props) {
   const {
     mode, onToggleMode, floatTab, onFloatTab, zoom, pan, onZoomReset, result,
     onCloseFloat, canUndo, canRedo, canClear, onUndo, onRedo, onClear,
-    panelOpen, onTogglePanel, showToast,
+    panelOpen, onTogglePanel, onReload, showToast,
   } = props
   const [pvIdx, setPvIdx] = React.useState(0)
   const [copied, setCopied] = React.useState(false)
@@ -79,6 +79,12 @@ export function CanvasOverlay(props) {
         title: '渲染预览（内置渲染器）',
         onClick: () => onFloatTab(floatTab === 'preview' ? null : 'preview'),
       }, el(IconChecklistOutline14, { size: 14 }), t('previewTab')),
+      el('button', {
+        type: 'button',
+        className: 'mm-ctool',
+        title: '重新加载当前画布（跨端口同步：另一 DSH 实例保存的修改在此刷新；列表同步刷新）',
+        onClick: () => { if (typeof onReload === 'function') onReload() },
+      }, el(IconRefreshOutline16, { size: 14 }), t('refreshCanvas')),
       el('button', {
         type: 'button',
         className: 'mm-ctool' + (panelOpen ? ' mm-ctool-on' : ''),

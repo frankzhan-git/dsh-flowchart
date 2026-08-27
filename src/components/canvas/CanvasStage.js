@@ -3,6 +3,7 @@
 import React from 'react'
 import { CANVAS_W, CANVAS_H } from '../../core/model.js'
 import { edgeGeom, anchorToWorld, nodeById } from '../../core/geometry.js'
+import { sortForRender } from '../../core/grouping.js'
 import { NodeRenderer } from './NodeRenderer.js'
 import { EdgeRenderer } from './EdgeRenderer.js'
 import { SnapLines } from './SnapLines.js'
@@ -27,7 +28,7 @@ export function CanvasStage(props) {
     : ''
   const pageDir = { TD: '↓', TB: '↓', BT: '↑', LR: '→', RL: '←' }
 
-  const nodesOf = (pageId) => doc.nodes.filter((n) => n.pageId === pageId)
+  const nodesOf = (pageId) => sortForRender(doc.nodes.filter((n) => n.pageId === pageId))
   const edgesOf = (pageId) => doc.edges.filter((e) => e.pageId === pageId)
 
   return el('div', { className: 'mm-canvas-view', ref: viewRef },
@@ -75,6 +76,9 @@ export function CanvasStage(props) {
           selected: selectedIds.indexOf(n.id) !== -1,
           editing,
           drawMode: mode === 'draw',
+          groupHover: !!(drag && drag.groupHover === n.id),
+          creating: !!(drag && drag.mode === 'nodeCreate' && drag.tmpId === n.id),
+          createCover: !!(drag && drag.cover),
           onStartEdit: onStartEditNode,
           onCtxMenu: onCtxNode,
           onEditChange, onEditDone,

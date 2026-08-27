@@ -9,6 +9,10 @@ import {
   clamp, nodeById, pageChip,
 } from './geometry.js'
 import { shapeOf } from './shapes.js'
+import {
+  isGroup, descendantIds, subtreeBounds, rectsOverlap, coveredByRect,
+  normalizeMove, buildGroupNode,
+} from './grouping.js'
 
 export { toLocal, zoomAt, computePan }
 export const SNAP_TOL = 6
@@ -23,22 +27,53 @@ export function decidePointerDown(ctx, x, y, clientX, clientY) {
   if (ctx.spaceDown) {
     return { kind: 'pan', drag: { mode: 'pan', sx: clientX, sy: clientY, px: ctx.pan.x, py: ctx.pan.y } }
   }
-  // 多选组：外框边带 = 批量改宽高；右下角 = 批量等比缩放（先于元素命中）
-  if (mode === 'select' && selectedIds.length > 1) {
+  // 多选组：外框边带 = 批量改宽高；右下角 = 批量等比缩放（先于元素命中；两种模式语义一致——
+  // 绘制模式下若仍走单控件命中，批量选框的边带/角会落在其上某个控件上，出现「只有其中一个跟随」）
+  if (selectedIds.length > 1) {
     const gb = groupBounds(doc.nodes, selectedIds)
     if (gb) {
       const handle = 10 / zoom
       const gSide = hitGroupEdge(gb, x, y, handle, 4 / zoom)
       if (gSide) {
-        return { kind: 'groupEdgeResize', drag: { mode: 'groupEdgeResize', side: gSide, sx: x, sy: y, gb } }
+        // 批量 resize：成员起点快照（每帧绝对重算，防增量累积漂移/NaN）
+        return { kind: 'groupEdgeResize', drag: { mode: 'groupEdgeResize', side: gSide, sx: x, sy: y, gb, members: memberSnapshot(doc, selectedIds) } }
       }
       const csz = 12 / zoom
       if (x >= gb.x + gb.w - csz && x <= gb.x + gb.w + csz && y >= gb.y + gb.h - csz && y <= gb.y + gb.h + csz) {
-        return { kind: 'groupCornerResize', drag: { mode: 'groupCornerResize', sx: x, sy: y, gb } }
+        // 批量等比：成员起点快照（每帧绝对重算，防增量累积漂移）
+        return { kind: 'groupCornerResize', drag: { mode: 'groupCornerResize', sx: x, sy: y, gb, members: memberSnapshot(doc, selectedIds) } }
       }
-      // 组内任意位置 → 组移动（锚点 = 命中组内元素；空白取选中集最后一个）
+      // 组内任意位置：
       if (x >= gb.x && x <= gb.x + gb.w && y >= gb.y && y <= gb.y + gb.h) {
         const loc = hitPriority(doc, x, y, zoom)
+        // 绘制模式：内部控件自身的边带/角 = 单控件 resize（外框带已优先批量语义，内部不劫持）
+        if (mode === 'draw' && loc && loc.kind === 'node' && (loc.mode === 'edge' || loc.mode === 'corner')) {
+          const n = loc.node
+          const page = pageOf(doc, n)
+          // 组合 resize：成员起点快照（每帧从起点重算，防止比例乘法累积漂移）
+          const members = isGroup(n)
+            ? descendantIds(doc, n.id).map((id) => {
+                const m = nodeById(doc, id)
+                return m ? { id, x: m.x, y: m.y, w: m.w, h: m.h } : null
+              }).filter(Boolean)
+            : null
+          return {
+            kind: 'resize',
+            drag: { mode: 'resize', id: n.id, sx: x, sy: y, ox: n.x, oy: n.y, ow: n.w, oh: n.h, side: loc.side, page, members },
+          }
+        }
+        // 绘制模式：未选中控件主体 = 单选 + 移动（不劫持为组移动）
+        if (mode === 'draw' && loc && loc.kind === 'node' && loc.mode === 'inside' && selectedIds.indexOf(loc.node.id) === -1) {
+          const n = loc.node
+          const page = pageOf(doc, n)
+          return {
+            kind: 'nodeMove',
+            drag: { mode: 'nodeMove', id: n.id, sx: x, sy: y, ox: n.x, oy: n.y, page, multi: false, ownerGroup: groupOwnerOf(doc, n.id) },
+            sel: [n.id],
+          }
+        }
+        // 其余（选择模式组内任意位置；绘制模式选中主体/空白）→ 组移动
+        // （锚点 = 命中选中元素；空白取选中集最后一个）
         const anchor = loc && loc.kind === 'node' && selectedIds.indexOf(loc.node.id) !== -1
           ? loc.node
           : doc.nodes.find((n) => n.id === selectedIds[selectedIds.length - 1])
@@ -46,7 +81,7 @@ export function decidePointerDown(ctx, x, y, clientX, clientY) {
           const page = pageOf(doc, anchor)
           return {
             kind: 'nodeMove',
-            drag: { mode: 'nodeMove', id: anchor.id, sx: x, sy: y, ox: anchor.x, oy: anchor.y, page, multi: true },
+            drag: { mode: 'nodeMove', id: anchor.id, sx: x, sy: y, ox: anchor.x, oy: anchor.y, page, multi: true, ownerGroup: groupOwnerOf(doc, anchor.id) },
           }
         }
       }
@@ -112,9 +147,16 @@ export function decidePointerDown(ctx, x, y, clientX, clientY) {
       // 绘制模式：贴边 = 调宽高；角 = resize（Q1）；主体 = 选中 + 移动
       if (loc.mode === 'edge' || loc.mode === 'corner') {
         const page = pageOf(doc, n)
+        // 组合 resize：成员起点快照（每帧从起点重算，防止比例乘法累积漂移）
+        const members = isGroup(n)
+          ? descendantIds(doc, n.id).map((id) => {
+              const m = nodeById(doc, id)
+              return m ? { id, x: m.x, y: m.y, w: m.w, h: m.h } : null
+            }).filter(Boolean)
+          : null
         return {
           kind: 'resize',
-          drag: { mode: 'resize', id: n.id, sx: x, sy: y, ox: n.x, oy: n.y, ow: n.w, oh: n.h, side: loc.side, page },
+          drag: { mode: 'resize', id: n.id, sx: x, sy: y, ox: n.x, oy: n.y, ow: n.w, oh: n.h, side: loc.side, page, members },
         }
       }
       const keepMulti = selectedIds.indexOf(n.id) !== -1 && selectedIds.length > 1
@@ -122,7 +164,7 @@ export function decidePointerDown(ctx, x, y, clientX, clientY) {
       const page = pageOf(doc, n)
       return {
         kind: 'nodeMove',
-        drag: { mode: 'nodeMove', id: n.id, sx: x, sy: y, ox: n.x, oy: n.y, page, multi: keepMulti },
+        drag: { mode: 'nodeMove', id: n.id, sx: x, sy: y, ox: n.x, oy: n.y, page, multi: keepMulti, ownerGroup: groupOwnerOf(doc, n.id) },
         sel: keepMulti ? null : selIds,
       }
     }
@@ -180,10 +222,32 @@ export function pageOf(doc, node) {
   return p ? { x: p.x, y: p.y, w: p.w, h: p.h } : null
 }
 
+// 节点当前所属组 id（拖入/拖出结算用）；无 → null
+function groupOwnerOf(doc, nodeId) {
+  const g = (doc.nodes || []).find((n) => isGroup(n) && (n.children || []).includes(nodeId))
+  return g ? g.id : null
+}
+
+// 多选成员起点快照（批量 resize 用；每帧以快照绝对重算，防增量累积漂移）
+function memberSnapshot(doc, ids) {
+  return (ids || []).map((id) => {
+    const m = nodeById(doc, id)
+    return m ? { id, x: m.x, y: m.y, w: m.w, h: m.h, shape: m.shape } : null
+  }).filter(Boolean)
+}
+
 // ---------- pointer.move 计算 ----------
 export function updateDrag(ctx, drag, x, y, clientX, clientY) {
   if (drag.mode === 'pan') return { pan: computePan(drag, clientX, clientY, ctx.rect, ctx.zoom) }
-  if (drag.mode === 'pageCreate' || drag.mode === 'nodeCreate') return { patch: computeCreate(ctx, drag, x, y) }
+  if (drag.mode === 'pageCreate' || drag.mode === 'nodeCreate') {
+    const r = computeCreate(ctx, drag, x, y)
+    // 覆盖检测：nodeCreate 时附带 createCover（供预览透明/恢复背景）
+    if (drag.mode === 'nodeCreate') {
+      const cover = createCovers(ctx, drag, r)
+      return { patch: r, createCover: cover }
+    }
+    return { patch: r }
+  }
   if (drag.mode === 'pageResize') {
     const r = computePageResize(ctx, drag, x, y)
     return r ? { patch: r } : {}
@@ -194,6 +258,8 @@ export function updateDrag(ctx, drag, x, y, clientX, clientY) {
   if (drag.mode === 'resize') {
     const r = computeResize(ctx, drag, x, y)
     if (!r) return {}
+    // 组合：子树等比缩放返回 patches（多节点）；普通节点：单 patch
+    if (r.patches) return { patches: r.patches, snaps: r.snaps }
     const { snaps, ...patch } = r
     return { patch, snaps }
   }
@@ -226,6 +292,14 @@ export function computeCreate(ctx, drag, x, y) {
   return { x: nx, y: ny, w: Math.max(MIN_CREATE, nw), h: Math.max(MIN_CREATE, nh) }
 }
 
+// 绘制预览是否覆盖（相交）其他控件——覆盖时创建预览自动透明、松开后成为组合
+export function createCovers(ctx, drag, rect) {
+  if (drag.mode !== 'nodeCreate') return false
+  const tmp = (ctx.doc.nodes || []).find((n) => n.id === drag.tmpId)
+  if (!tmp) return false
+  return coveredByRect(rect, ctx.doc.nodes, tmp.pageId).length > 0
+}
+
 // 页面宽高调整（Q1：仅绘制模式；四边单边缩放、右下角等比自由；最小尺寸 PAGE_MIN）
 export function computePageResize(ctx, drag, x, y) {
   const page = (ctx.doc.pages || []).find((p) => p.id === drag.id)
@@ -253,7 +327,7 @@ export function computePageResize(ctx, drag, x, y) {
   return { x: nx, y: ny, w, h }
 }
 
-// 节点移动：6 向对齐吸附 + 页面钳制 + 多选组移动（每帧增量，防重复累加）
+// 节点移动：6 向对齐吸附 + 页面钳制 + 多选组移动 + 组合子树跟随（每帧增量，防重复累加）
 export function computeMove(ctx, drag, x, y) {
   const { doc, zoom, selectedIds } = ctx
   const el = nodeById(doc, drag.id)
@@ -269,6 +343,10 @@ export function computeMove(ctx, drag, x, y) {
     selectedIds.forEach((id) => moving.add(id))
   }
   moving.add(el.id)
+  // 组合子树跟随：拖动组合时其全部子孙同帧增量移动
+  if (isGroup(el)) {
+    for (const d of descendantIds(doc, el.id)) moving.add(d)
+  }
   const targets = (doc.nodes || []).filter((n) => !moving.has(n.id) && n.pageId === el.pageId)
   if (drag.page) targets.push(drag.page)
   let bx = null
@@ -315,7 +393,26 @@ export function computeMove(ctx, drag, x, y) {
     }
     patches.push({ id, x: ex, y: ey })
   }
-  return { patches, snaps, lastDx: deltaX, lastDy: deltaY }
+  // 组合拖入反馈：移动块与「非宿主组」相交 → 高亮该组矩形
+  const block = isGroup(el) ? subtreeBounds(doc, el.id) : { x: nx, y: ny, w: el.w, h: el.h }
+  let groupHover = null
+  if (block) {
+    let bestArea = 0
+    for (const g of doc.nodes || []) {
+      if (!isGroup(g)) continue
+      if (g.id === el.id || g.id === drag.ownerGroup) continue
+      if (subtreeHasGroup(g, doc, el.id)) continue
+      if (g.pageId !== el.pageId) continue
+      if (!rectsOverlap(g, block)) continue
+      if (g.w * g.h > bestArea) { bestArea = g.w * g.h; groupHover = g.id }
+    }
+  }
+  return { patches, snaps, lastDx: deltaX, lastDy: deltaY, groupHover }
+}
+
+// g 的子树是否包含 el（g 为 el 的祖先组——拖动块不可与自己的祖先发生关系）
+function subtreeHasGroup(g, doc, elId) {
+  return descendantIds(doc, g.id).includes(elId)
 }
 
 // 页面移动：内部节点跟随（保持相对位置，不做钳制）；页面间保持间距
@@ -441,23 +538,54 @@ export function computeResize(ctx, drag, x, y) {
       if (ny < minY) { ny = minY; h = Math.max(min.h, drag.oy + drag.oh - ny) }
     }
   }
+  // 组合 resize：矩形变化 → 子孙等比缩放（基于**拖动起点快照** drag.members；页面钳制；最小尺寸）——
+  // 保证「完全包裹」不变式：组缩小也不会把成员顶出（成员随比例缩放）；
+  // 以起点快照为基准重算（非当前渲染值），杜绝多帧相对比例的累积漂移
+  if (isGroup(el)) {
+    const oldB = { x: drag.ox, y: drag.oy, w: drag.ow, h: drag.oh }
+    const newB = { x: nx, y: ny, w, h }
+    const patches = [{ id: el.id, x: newB.x, y: newB.y, w: newB.w, h: newB.h }]
+    for (const m of drag.members || []) {
+      const min = shapeOf(m.shape || 'rectangle').min
+      const px = oldB.w > 0 ? (m.x - oldB.x) / oldB.w : 0
+      const py = oldB.h > 0 ? (m.y - oldB.y) / oldB.h : 0
+      const pw = oldB.w > 0 ? m.w / oldB.w : 1
+      const ph = oldB.h > 0 ? m.h / oldB.h : 1
+      let ex = newB.x + px * newB.w
+      let ey = newB.y + py * newB.h
+      let ew = Math.max(min.w, pw * newB.w)
+      let eh = Math.max(min.h, ph * newB.h)
+      const cur = nodeById(ctx.doc, m.id)
+      const pg = cur ? pageOf(ctx.doc, cur) : null
+      if (pg) {
+        ex = clamp(ex, pg.x, pg.x + pg.w - ew)
+        ey = clamp(ey, pg.y, pg.y + pg.h - eh)
+        ew = Math.max(min.w, Math.min(ew, pg.x + pg.w - ex))
+        eh = Math.max(min.h, Math.min(eh, pg.y + pg.h - ey))
+      }
+      patches.push({ id: m.id, x: ex, y: ey, w: ew, h: eh })
+    }
+    return { patches, snaps }
+  }
   return { x: nx, y: ny, w, h, snaps }
 }
 
-// 多选外框边批量调整（单轴）：移动边一侧跟随，对侧不动；吸附非选中元素
+// 多选外框边批量调整（单轴、四边可用）：移动边一侧增量，对侧不动；以**起点快照** drag.members 绝对重算，
+// 吸附非选中元素（绝对式防多帧增量累积）；页面钳制防越界。
+// r：各成员 w 增减（x 不动）；l：各成员 x 随动、右缘固定（w 增减）；b：h 增减；t：y 随动、底缘固定
 export function computeGroupEdgeResize(ctx, drag, x, y) {
   const side = drag.side
   const gb = drag.gb
   const cumX = x - drag.sx
   const cumY = y - drag.sy
-  const idSet = new Set(ctx.selectedIds)
   const tol = SNAP_TOL / (ctx.zoom || 1)
   const snaps = []
-  const targets = (ctx.doc.nodes || []).filter((t) => !idSet.has(t.id))
+  const targets = (ctx.doc.nodes || []).filter((t) => !(drag.members || []).some((m) => m.id === t.id))
   let adjX = 0
   let adjY = 0
-  if (side === 'r') {
-    const edge = gb.x + gb.w + cumX
+  // 移动边吸附（r/l 吸 x 线；b/t 吸 y 线）
+  if (side === 'r' || side === 'l') {
+    const edge = (side === 'r' ? gb.x + gb.w : gb.x) + cumX
     let bw = null
     for (const t of targets) {
       for (const [d, pos] of [[Math.abs(edge - t.x), t.x], [Math.abs(edge - (t.x + t.w)), t.x + t.w]]) {
@@ -465,8 +593,8 @@ export function computeGroupEdgeResize(ctx, drag, x, y) {
       }
     }
     if (bw) { adjX = bw.pos - edge; snaps.push({ axis: 'v', pos: bw.pos }) }
-  } else if (side === 'b') {
-    const edge = gb.y + gb.h + cumY
+  } else if (side === 'b' || side === 't') {
+    const edge = (side === 'b' ? gb.y + gb.h : gb.y) + cumY
     let bh = null
     for (const t of targets) {
       for (const [d, pos] of [[Math.abs(edge - t.y), t.y], [Math.abs(edge - (t.y + t.h)), t.y + t.h]]) {
@@ -477,20 +605,37 @@ export function computeGroupEdgeResize(ctx, drag, x, y) {
   }
   const appX = cumX + adjX
   const appY = cumY + adjY
-  const incX = side === 'r' ? appX - (drag.lastDx || 0) : 0
-  const incY = side === 'b' ? appY - (drag.lastDy || 0) : 0
   const patches = []
-  for (const n of ctx.doc.nodes || []) {
-    if (!idSet.has(n.id)) continue
-    const min = shapeOf(n.shape).min
-    const p = { id: n.id }
-    if (side === 'r') p.w = Math.max(min.w, n.w + incX)
-    else if (side === 'b') p.h = Math.max(min.h, n.h + incY)
+  for (const m of drag.members || []) {
+    const min = shapeOf(m.shape || 'rectangle').min
+    const p = { id: m.id }
     // 页面钳制（批量改宽高不允许越出所属页面——控件漂移的防御）
-    const pg = pageOf(ctx.doc, n)
-    if (pg) {
-      if (side === 'r') p.w = Math.min(p.w, pg.x + pg.w - n.x)
-      else if (side === 'b') p.h = Math.min(p.h, pg.y + pg.h - n.y)
+    const cur = nodeById(ctx.doc, m.id)
+    const pg = cur ? pageOf(ctx.doc, cur) : null
+    if (side === 'r') {
+      p.w = Math.max(min.w, m.w + appX)
+      if (pg) p.w = Math.min(p.w, pg.x + pg.w - m.x)
+    } else if (side === 'l') {
+      // 左缘随动、右缘固定：x 增量 = appX，w 相应反向增减；最小尺寸时锚定右缘
+      const right = m.x + m.w
+      let nx = m.x + appX
+      let nw = Math.max(min.w, right - nx)
+      nx = right - nw
+      if (pg && nx < pg.x) { nx = pg.x; nw = Math.max(min.w, right - nx) }
+      p.x = nx
+      p.w = nw
+    } else if (side === 'b') {
+      p.h = Math.max(min.h, m.h + appY)
+      if (pg) p.h = Math.min(p.h, pg.y + pg.h - m.y)
+    } else if (side === 't') {
+      // 上缘随动、下缘固定：y 增量 = appY，h 相应反向增减；最小尺寸时锚定下缘
+      const bottom = m.y + m.h
+      let ny = m.y + appY
+      let nh = Math.max(min.h, bottom - ny)
+      ny = bottom - nh
+      if (pg && ny < pg.y) { ny = pg.y; nh = Math.max(min.h, bottom - ny) }
+      p.y = ny
+      p.h = nh
     }
     patches.push(p)
   }
@@ -498,19 +643,19 @@ export function computeGroupEdgeResize(ctx, drag, x, y) {
 }
 
 // 多选外框右下角等比缩放（锚定左上角，scale 0.1–10；结果按各节点所属页面钳制）
+// 以**起点快照** drag.members 绝对重算（防多帧累积漂移）
 export function computeGroupCornerResize(ctx, drag, x, y) {
   const gb = drag.gb
   const scale = Math.max(0.1, Math.min(10, (x - gb.x) / Math.max(1, gb.w)))
-  const idSet = new Set(ctx.selectedIds)
   const patches = []
-  for (const n of ctx.doc.nodes || []) {
-    if (!idSet.has(n.id)) continue
-    const min = shapeOf(n.shape).min
-    let nx = gb.x + (n.x - gb.x) * scale
-    let ny = gb.y + (n.y - gb.y) * scale
-    let w = Math.max(min.w, n.w * scale)
-    let h = Math.max(min.h, n.h * scale)
-    const pg = pageOf(ctx.doc, n)
+  for (const m of drag.members || []) {
+    const min = shapeOf(m.shape || 'rectangle').min
+    let nx = gb.x + (m.x - gb.x) * scale
+    let ny = gb.y + (m.y - gb.y) * scale
+    let w = Math.max(min.w, m.w * scale)
+    let h = Math.max(min.h, m.h * scale)
+    const cur = nodeById(ctx.doc, m.id)
+    const pg = cur ? pageOf(ctx.doc, cur) : null
     if (pg) {
       // 页面钳制：位置夹回、尺寸不越界（批量等比不允许飞出页面）
       nx = clamp(nx, pg.x, pg.x + pg.w - min.w)
@@ -518,7 +663,7 @@ export function computeGroupCornerResize(ctx, drag, x, y) {
       w = Math.max(min.w, Math.min(w, pg.x + pg.w - nx))
       h = Math.max(min.h, Math.min(h, pg.y + pg.h - ny))
     }
-    patches.push({ id: n.id, x: nx, y: ny, w, h })
+    patches.push({ id: m.id, x: nx, y: ny, w, h })
   }
   return patches
 }
@@ -572,6 +717,18 @@ export function hoverCursorFor(ctx, x, y) {
         if (!p.node || !p.anchor) continue
         const wpt = anchorToWorld(p.node, p.anchor)
         if (Math.hypot(x - wpt.x, y - wpt.y) <= 9 / zoom) return 'grab'
+      }
+    }
+  }
+  // 多选外框（两种模式语义一致）：边带 = 批量改宽高、右下角 = 批量等比 → 方向光标
+  if (ctx.selectedIds && ctx.selectedIds.length > 1) {
+    const gb = groupBounds(doc.nodes, ctx.selectedIds)
+    if (gb) {
+      const gSide = hitGroupEdge(gb, x, y, 10 / zoom, 4 / zoom)
+      if (gSide) return sideCursor(gSide)
+      const csz = 12 / zoom
+      if (x >= gb.x + gb.w - csz && x <= gb.x + gb.w + csz && y >= gb.y + gb.h - csz && y <= gb.y + gb.h + csz) {
+        return 'nwse-resize'
       }
     }
   }
@@ -658,6 +815,12 @@ export function settleDrag(ctx, drag) {
     const tmp = (ctx.doc.nodes || []).find((n) => n.id === drag.tmpId)
     if (!tmp) return { commit: true }
     if (tmp.w < 20 || tmp.h < 16) return { remove: [drag.tmpId], commit: true }
+    // 覆盖了其他控件 → 创建组合（透明矩形 + 成员包裹 + 全部框选）；否则普通节点
+    const covered = coveredByRect(tmp, ctx.doc.nodes, tmp.pageId).filter((id) => id !== tmp.id)
+    if (covered.length) {
+      const group = buildGroupNode(tmp, ctx.doc, covered)
+      return { groupPatch: group, commit: true, select: [group.id].concat(group.children) }
+    }
     const c = Object.assign({}, tmp)
     delete c.dragTmp
     return { patch: c, commit: true, select: [c.id] }
@@ -700,10 +863,15 @@ export function settleDrag(ctx, drag) {
       commit: true,
     }
   }
-  if (drag.mode === 'nodeMove' || drag.mode === 'pageMove' || drag.mode === 'resize'
+  if (drag.mode === 'pageMove' || drag.mode === 'resize'
     || drag.mode === 'pageResize'
     || drag.mode === 'groupEdgeResize' || drag.mode === 'groupCornerResize') {
     return { commit: true }
+  }
+  // 组合结算（拖入/拖出/归一）：normalizeMove 输出 childBinds/groupPatches/adjustments
+  if (drag.mode === 'nodeMove') {
+    const r = normalizeMove(ctx.doc, drag.id)
+    return Object.assign({ commit: true }, r)
   }
   return {}
 }

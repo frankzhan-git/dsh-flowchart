@@ -59,14 +59,17 @@ export function useCanvasEdit(deps) {
     (d) => ({ ...d, config: { ...d.config, ...patchObj } }), 'config')
 
   // ---------- 删除 ----------
-  // 删除节点集合：连带删除引用它们的边（连接语义不变量）
+  // 删除节点集合：连带删除引用它们的边（连接语义不变量）；
+  // 组合清理：删除组只删外框（其成员保留散出），并清除所有组对已删节点的 children 引用
   const removeSel = (ids) => {
     if (!ids || !ids.length) return
     const set = new Set(ids)
     commitHistory(cloneDoc(doc))
     setDoc((d) => ({
       ...d,
-      nodes: d.nodes.filter((n) => !set.has(n.id)),
+      nodes: d.nodes
+        .filter((n) => !set.has(n.id))
+        .map((n) => (n.children ? { ...n, children: n.children.filter((c) => !set.has(c)) } : n)),
       edges: d.edges.filter((e) => !set.has(e.from) && !set.has(e.to)),
     }))
     applySelection([], null)

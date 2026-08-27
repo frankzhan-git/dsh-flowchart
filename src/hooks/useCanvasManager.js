@@ -120,21 +120,9 @@ export function useCanvasManager(deps) {
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
   })
 
-  // 跨实例可见性（v0.2.6）：多实例（:3080/:3090）无跨进程事件推送，
-  // 弹窗打开期间轻量轮询列表 + 页面聚焦/切回时刷新——对面新增/删除/改名自动出现
-  React.useEffect(() => {
-    if (!open) return
-    const timer = setInterval(() => { refreshDocs() }, 4000)
-    const onFocus = () => { refreshDocs() }
-    const onVis = () => { if (document.visibilityState === 'visible') refreshDocs() }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      clearInterval(timer)
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVis)
-    }
-  }, [open, refreshDocs])
+  // 跨实例可见性（v0.2.7 定案）：不做自动轮询——多实例场景无跨进程推送，
+  // 列表刷新交给用户手动（历史区右上角刷新按钮）+ 打开弹窗时与本端操作后的基础刷新。
+  // 避免轮询干扰本端编辑与产生无谓请求。
 
   React.useEffect(() => {
     storeRef.current = defaultStore()
@@ -203,6 +191,15 @@ export function useCanvasManager(deps) {
       showToast(t('toast.loadFailed'), 'error')
     }
   }
+  // 画布视图右上角「刷新」（跨端口同步）：① 本端未落盘修改先保存 ② 重新读盘载入当前画布
+  // ③ 列表一并刷新。对面实例（:3080/:3090 另一端口）的最新改动在此拉取。
+  const reloadCurrent = async () => {
+    const id = currentIdRef.current
+    if (!id) { await refreshDocs(); return }
+    const cur = docs.find((d) => d.id === id)
+    if (cur) await loadCanvas(cur)
+    else { await flushSave(); await refreshDocs() }
+  }
   const delCanvas = async (id) => {
     await enqueueSave(() => storeRef.current.remove(id))
     setDocs((d) => d.filter((x) => x.id !== id))
@@ -251,7 +248,7 @@ export function useCanvasManager(deps) {
 
   return {
     docs, setDocs, floatTab, setFloatTab, flushSave, refreshDocs,
-    newCanvas, loadCanvas, delCanvas, renameCanvas, clearAll,
+    newCanvas, loadCanvas, reloadCurrent, delCanvas, renameCanvas, clearAll,
     exportCanvas, importCanvas,
   }
 }

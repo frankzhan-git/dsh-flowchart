@@ -3,6 +3,7 @@
 //       锚点换算（anchorFromPoint/anchorToWorld）、箭头几何（edgeKindOf/edgeGeom/edgeHitDistance）、
 //       包围盒/框选/吸附（groupBounds/containsNode/pickNodes）。全部纯函数，零 React/DSH。
 import { CANVAS_W, CANVAS_H } from './model.js'
+import { sortForRender } from './grouping.js'
 
 // ---------- 相机（无限画布：SVG 固定视口，viewBox 随 zoom/pan 变化） ----------
 
@@ -95,15 +96,17 @@ export function hitCornerOf(el, x, y, zoom) {
   return best
 }
 
-// 统一命中（自顶向下）：
-//   节点层（数组尾 = 视觉上层）：内部 / 边带 / 右下角；返回 { kind:'node', node, mode, side }
+// 统一命中（自顶向下，与渲染排序 sortForRender 一致——组合先画（底层）、成员后画（上层）：
+//   最后画的先命中，所以组成员优先于组合矩形、外层普通节点优先于组合）：
+//   节点层（sortForRender 反序 = 视觉上层）：内部 / 边带 / 右下角；返回 { kind:'node', node, mode, side }
 //   箭头层（节点之下；命中 = 路径 8/zoom 内）：{ kind:'edge', edge }
 //   页面标题条（页面左上角 120×18 墨迹条，页面移动/重命名入口）：{ kind:'pageTitle', page }
 export function hitPriority(doc, x, y, zoom) {
   const nodes = doc.nodes || []
   const edges = doc.edges || []
-  for (let i = nodes.length - 1; i >= 0; i--) {
-    const n = nodes[i]
+  const ordered = sortForRender(nodes)
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const n = ordered[i]
     const corner = hitCornerOf(n, x, y, zoom)
     if (corner) return { kind: 'node', node: n, mode: 'corner', side: corner }
     const edge = hitEdgeOf(n, x, y, zoom)

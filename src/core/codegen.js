@@ -6,6 +6,7 @@ import { shapeOf } from './shapes.js'
 import { edgeKindOf } from './edge-kinds.js'
 import { CONFIG_DEFAULTS, collectNonDefaultConfig } from './config-schema.js'
 import { pageTypeOf } from './page-types.js'
+import { isGroup } from './grouping.js'
 
 // ---------- normalize ----------
 
@@ -42,11 +43,36 @@ export function buildPageCode(page, doc) {
   // 归一化（C1）：未知形状回退矩形；孤儿边剔除记 issue；id sanitize
   const nodeById = new Map()
   const lines = []
-  for (const n of nodes) {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  // 组合（P8）：组节点 → mermaid subgraph（成员行递归输出；组 id 可直接参与边）
+  const emitted = new Set()
+  const groupChildren = (g) => (g.children || []).map((id) => byId.get(id)).filter(Boolean)
+  const isMemberOfAny = (id) => nodes.some((g) => isGroup(g) && (g.children || []).includes(id))
+  const emitGroup = (g, indent) => {
+    lines.push(indent + 'subgraph ' + sanitizeNodeId(g.id) + ' [' + escapeLabel(g.text, htmlLabels) + ']')
+    emitted.add(g.id)
+    for (const c of groupChildren(g)) {
+      if (isGroup(c)) emitGroup(c, indent + '  ')
+      else if (!emitted.has(c.id)) {
+        lines.push(nodeLineFor(c, indent + '  '))
+        emitted.add(c.id)
+      }
+    }
+    lines.push(indent + 'end')
+  }
+  const nodeLineFor = (n, indent) => {
     const shape = shapeOf(n.shape)
-    const id = sanitizeNodeId(n.id)
-    nodeById.set(id, n.id)
-    lines.push('    ' + id + shape.syntax(escapeLabel(n.text, htmlLabels)))
+    return indent + sanitizeNodeId(n.id) + shape.syntax(escapeLabel(n.text, htmlLabels))
+  }
+  for (const n of nodes) {
+    nodeById.set(sanitizeNodeId(n.id), n.id)
+  }
+  for (const n of nodes) {
+    if (isGroup(n) && !emitted.has(n.id) && !isMemberOfAny(n.id)) emitGroup(n, '    ')
+  }
+  for (const n of nodes) {
+    if (isGroup(n) || emitted.has(n.id)) continue
+    lines.push(nodeLineFor(n, '    '))
   }
   for (const e of edges) {
     const from = sanitizeNodeId(e.from)

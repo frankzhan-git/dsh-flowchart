@@ -15,13 +15,22 @@ export const CANVAS_CSS = `
   fill: var(--mm-text-2); font-size: 10px; font-weight: 600; pointer-events: none;
 }
 .mm-page-chip { fill: transparent; cursor: move; }
-.mm-page-selected .mm-page { stroke: var(--mm-accent); stroke-width: 2; }
+.mm-page-selected .mm-page { stroke: var(--mm-accent); }
 .mm-page-selected .mm-page-name { fill: var(--mm-accent); }
 /* 节点 */
 .mm-node-body {
   fill: var(--mm-bg-raised); stroke: var(--mm-border-strong); stroke-width: 1.5;
 }
-.mm-node-selected .mm-node-body { stroke: var(--mm-accent); stroke-width: 2; }
+/* 组合控件（P8）：透明背景（可见其内成员）；实线描边；悬停亮框反馈（拖入预览） */
+.mm-node-group .mm-node-body { fill: transparent; fill-opacity: 0; }
+.mm-node-group-hover .mm-node-body {
+  stroke: var(--mm-accent); stroke-width: 2;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--mm-accent) 60%, transparent));
+}
+/* 绘制创建预览：覆盖控件 → 自动透明（将成组合）；无覆盖 → 实底（普通节点预览） */
+.mm-node-create .mm-node-body { stroke-dasharray: 4 3; }
+.mm-node-create-cover .mm-node-body { fill: transparent; fill-opacity: 0; }
+.mm-node-selected .mm-node-body { stroke: var(--mm-accent); }
 .mm-node-label {
   fill: var(--mm-text); font-size: 12px; text-anchor: middle; dominant-baseline: central;
   pointer-events: none; white-space: pre;
