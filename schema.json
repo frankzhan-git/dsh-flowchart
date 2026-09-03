@@ -35,7 +35,9 @@
           "shape": { "enum": ["rectangle", "rounded", "stadium", "subroutine", "cylinder", "circle", "doubleCircle", "asymmetric", "diamond", "hexagon", "parallelogram", "parallelogramAlt", "trapezoid", "trapezoidAlt"] },
           "x": { "type": "number" }, "y": { "type": "number" },
           "w": { "type": "number" }, "h": { "type": "number" },
-          "text": { "type": "string" }
+          "text": { "type": "string" },
+          "group": { "type": "boolean", "description": "组合（subgraph）节点；成员经 children 唯一归属（每成员至多一个父组）" },
+          "children": { "type": "array", "items": { "type": "string" }, "description": "直接成员 id（独占归属；子孙任意深度）" }
         }
       }
     },

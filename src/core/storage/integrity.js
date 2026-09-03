@@ -1,6 +1,7 @@
 // dsh-flowchart core/storage/integrity.js
 // 职责：P5 容错——sanitizeDoc 逐记录清洗（非法丢弃并计数）；isValidMeta 列表条目校验
 // 边界：读取路径永不抛（解析失败由适配器/宿主层隔离）
+import { applyOwnership } from '../grouping.js'
 const SIDES = ['l', 'r', 't', 'b']
 const SHAPES = ['rectangle', 'rounded', 'stadium', 'subroutine', 'cylinder', 'circle', 'doubleCircle',
   'asymmetric', 'diamond', 'hexagon', 'parallelogram', 'parallelogramAlt', 'trapezoid', 'trapezoidAlt']
@@ -29,7 +30,9 @@ export function sanitizeDoc(raw) {
       if (n && typeof n === 'object' && typeof n.id === 'string' && n.id &&
         typeof n.pageId === 'string' && typeof n.x === 'number' && typeof n.y === 'number' &&
         typeof n.w === 'number' && typeof n.h === 'number') {
-        nodes.push(Object.assign({}, n, { shape: SHAPES.indexOf(n.shape) === -1 ? 'rectangle' : n.shape, text: typeof n.text === 'string' ? n.text : '' }))
+        const nn = Object.assign({}, n, { shape: SHAPES.indexOf(n.shape) === -1 ? 'rectangle' : n.shape, text: typeof n.text === 'string' ? n.text : '' })
+        delete nn.dragTmp // 运行时标志（0.2.7 曾持久化进存储）——载入清洗
+        nodes.push(nn)
       } else dropped++
     }
     for (const e of Array.isArray(raw.edges) ? raw.edges : []) {
@@ -60,9 +63,13 @@ export function sanitizeDoc(raw) {
     if (nodes.some((n) => n.id === e.from) && nodes.some((n) => n.id === e.to)) kept.push(e)
     else dropped++
   }
+  // 组合唯一归属（0.2.8）：重复归属/自指/跨页引用/孤儿 children 归一（歧义取最深父组）；
+  // 重复绑定计为 dropped（可观测），不静默
+  const owned = applyOwnership(nodes)
+  dropped += owned.fixes
   return {
     doc: {
-      pages, nodes, edges: kept,
+      pages, nodes: owned.nodes, edges: kept,
       config: raw && raw.config && typeof raw.config === 'object' ? raw.config : { theme: 'default', fontFamily: '' },
     },
     dropped,

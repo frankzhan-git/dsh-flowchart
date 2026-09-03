@@ -4,14 +4,14 @@
 // 导出：decidePointerDown / updateDrag / settleDrag / arrowGhost / hoverCursorFor / 常量
 import { createNode, createPage, createEdge, MAX_ELEMENTS, PAGE_MIN } from './model.js'
 import {
-  toLocal, zoomAt, computePan, handleMetrics, hitEdgeOf, hitPriority,
+  toLocal, zoomAt, computePan, handleMetrics, hitEdgeOf, hitPriority, hitGroupInside,
   anchorFromPoint, anchorToWorld, edgeKindOf, groupBounds, hitGroupEdge,
   clamp, nodeById, pageChip,
 } from './geometry.js'
 import { shapeOf } from './shapes.js'
 import {
   isGroup, descendantIds, subtreeBounds, rectsOverlap, coveredByRect,
-  normalizeMove, buildGroupNode,
+  normalizeMove, buildGroupNode, unbindFromOthers,
 } from './grouping.js'
 
 export { toLocal, zoomAt, computePan }
@@ -46,6 +46,11 @@ export function decidePointerDown(ctx, x, y, clientX, clientY) {
       // 组内任意位置：
       if (x >= gb.x && x <= gb.x + gb.w && y >= gb.y && y <= gb.y + gb.h) {
         const loc = hitPriority(doc, x, y, zoom)
+        // 选择模式：组内箭头命中 → 选中箭头（0.2.8：多选框不再吞掉其内箭头）
+        if (mode === 'select' && loc && loc.kind === 'edge') {
+          if (ctx.ctrl) return { kind: 'selectEdge', ids: ctx.selectedEdge === loc.edge.id ? null : [loc.edge.id] }
+          return { kind: 'selectEdge', ids: [loc.edge.id] }
+        }
         // 绘制模式：内部控件自身的边带/角 = 单控件 resize（外框带已优先批量语义，内部不劫持）
         if (mode === 'draw' && loc && loc.kind === 'node' && (loc.mode === 'edge' || loc.mode === 'corner')) {
           const n = loc.node
@@ -124,6 +129,22 @@ export function decidePointerDown(ctx, x, y, clientX, clientY) {
     if (mode === 'select') {
       if (ctx.ctrl) return { kind: 'selectEdge', ids: ctx.selectedEdge === loc.edge.id ? null : [loc.edge.id] }
       return { kind: 'selectEdge', ids: [loc.edge.id] }
+    }
+    // 绘制模式：箭头命中不拦截——若箭头位于组合矩形内部，按「组内部」语义（组移动/选中），
+    // 否则落回下方空白语义（建节点/页面），保持 0.2.7 前既有行为
+    if (mode === 'draw') {
+      const gi = hitGroupInside(doc, x, y, zoom)
+      if (gi && gi.node) {
+        const n = gi.node
+        const page = pageOf(doc, n)
+        const keepMulti = selectedIds.indexOf(n.id) !== -1 && selectedIds.length > 1
+        const selIds = keepMulti ? selectedIds : [n.id]
+        return {
+          kind: 'nodeMove',
+          drag: { mode: 'nodeMove', id: n.id, sx: x, sy: y, ox: n.x, oy: n.y, page, multi: keepMulti, ownerGroup: groupOwnerOf(doc, n.id) },
+          sel: keepMulti ? null : selIds,
+        }
+      }
     }
   }
   // 页面宽高调整（Q1 同节点语义，仅绘制模式）：贴边 = 改宽高；右下角 = resize；
@@ -735,8 +756,9 @@ export function hoverCursorFor(ctx, x, y) {
   const loc = hitPriority(doc, x, y, zoom)
   if (mode !== 'draw') {
     // 选择模式：节点边带/角 = 连线起笔（crosshair + 起点圆点预览）；
-    // 页面标题条 = 页面移动（move）
+    // 箭头 = pointer（可选中提示）；页面标题条 = 页面移动（move）
     if (loc && loc.kind === 'node' && (loc.mode === 'edge' || loc.mode === 'corner')) return 'crosshair'
+    if (loc && loc.kind === 'edge') return 'pointer'
     if (loc && loc.kind === 'pageTitle') return 'move'
     return ''
   }
@@ -816,10 +838,16 @@ export function settleDrag(ctx, drag) {
     if (!tmp) return { commit: true }
     if (tmp.w < 20 || tmp.h < 16) return { remove: [drag.tmpId], commit: true }
     // 覆盖了其他控件 → 创建组合（透明矩形 + 成员包裹 + 全部框选）；否则普通节点
+    // （0.2.8：覆盖判定只收「顶层对象」；旧组解除对成员的引用——唯一归属）
     const covered = coveredByRect(tmp, ctx.doc.nodes, tmp.pageId).filter((id) => id !== tmp.id)
     if (covered.length) {
       const group = buildGroupNode(tmp, ctx.doc, covered)
-      return { groupPatch: group, commit: true, select: [group.id].concat(group.children) }
+      return {
+        groupPatch: group,
+        unbind: unbindFromOthers(ctx.doc, group),
+        commit: true,
+        select: [group.id].concat(group.children),
+      }
     }
     const c = Object.assign({}, tmp)
     delete c.dragTmp

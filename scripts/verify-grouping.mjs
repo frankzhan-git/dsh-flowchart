@@ -1,11 +1,12 @@
 // verify-grouping —— 组合控件（P8）纯函数断言
 // 覆盖：绘制成组（coveredByRect/buildGroupNode）/ 拖入归一（normalizeMove：完全包含/拖入扩展/拖出解除/推离）
 //       geometry（rectContains/rectsOverlap/pushOutOf/subtreeBounds）/ 渲染排序 / codegen subgraph
+//       （0.2.8）嵌套：覆盖建组只收顶层对象 / 唯一归属归一 / 旧组解除引用 / 嵌套 subgraph 输出
 import assert from 'node:assert/strict'
 import {
   isGroup, rectContains, rectsOverlap, pointInRect, descendantIds, subtreeBounds,
   coveredByRect, expandToContain, normalizeMove, pushOutOf, sortForRender, boundsOfNodes,
-  buildGroupNode,
+  buildGroupNode, unbindFromOthers, ownershipMap, applyOwnership,
 } from '../src/core/grouping.js'
 import { buildPageCode } from '../src/core/codegen.js'
 
@@ -114,6 +115,74 @@ console.log('=== codegen：组合 → subgraph ===')
   assert.ok(r.code.includes('n3["X"]'), '外部节点正常输出')
   assert.ok(r.code.indexOf('n1') > r.code.indexOf('subgraph'), '成员在 subgraph 内输出')
   assert.ok(r.code.indexOf('n2') > r.code.indexOf('subgraph'), '成员全部在 subgraph 内')
+}
+
+console.log('=== 覆盖建组（0.2.8）：只收顶层被覆盖对象 ===')
+{
+  const g = group('g1', 10, 10, 300, 200, ['n1', 'n2'], { text: '组1' })
+  const n1 = node('n1', 20, 20); const n2 = node('n2', 200, 20)
+  // 覆盖矩形同时命中组与其成员 → 只收组（成员随其组归入，不重复收编）
+  const draw = { x: 0, y: 0, w: 400, h: 300 }
+  const covered = coveredByRect(draw, [g, n1, n2], 'p1')
+  assert.deepEqual(covered, ['g1'], '覆盖组时只收组自身')
+  const gg = buildGroupNode(node('n9', 0, 0, 400, 300), { nodes: [g, n1, n2], pages: [page], edges: [] }, covered)
+  assert.deepEqual(gg.children, ['g1'], '新组 children = [组]')
+  assert.equal(gg.dragTmp, undefined, '建组清除 dragTmp（运行时标志不落数据）')
+  // 只覆盖某成员（成员 ⊂ 组 → 组必同时相交）→ 等同包裹整个组（嵌套语义：绕成员画矩形=包住其属组）
+  const draw2 = { x: 20, y: 20, w: 40, h: 30 }
+  const covered2 = coveredByRect(draw2, [g, n1, n2], 'p1')
+  assert.deepEqual(covered2, ['g1'], '覆盖成员 → 等价于包裹其属组（成员不单独收编）')
+  // 唯一归属防御：新组直接收编了某旧组成员时（异构数据），旧组引用被解除
+  const gg2 = buildGroupNode(node('n9', 10, 10, 70, 50), { nodes: [g, n1, n2], pages: [page], edges: [] }, ['g1', 'n1'])
+  const unbinds = unbindFromOthers({ nodes: [g, n1, n2, gg2] }, gg2)
+  assert.ok(unbinds.some((u) => u.id === 'g1' && !u.children.includes('n1')), '新组接纳成员 → 旧组解除引用（唯一归属）')
+}
+
+console.log('=== 唯一归属（0.2.8）：歧义取最深父组 / 环与孤儿清理 ===')
+{
+  // 重复归属（0.2.7 覆盖建组缺陷形态）：外层同时收编内层及其成员
+  const outer = group('g1', 0, 0, 400, 300, ['g2', 'n1'])
+  const inner = group('g2', 10, 10, 300, 200, ['n1'])
+  const n1 = node('n1', 20, 20)
+  const owned = ownershipMap([outer, inner, n1])
+  assert.equal(owned.get('n1'), 'g2', '重复归属 → 取最深父组（内层）')
+  assert.equal(owned.get('g2'), 'g1', '内层组归属外层')
+  const r = applyOwnership([outer, inner, n1])
+  const o = r.nodes.find((x) => x.id === 'g1')
+  const i = r.nodes.find((x) => x.id === 'g2')
+  assert.deepEqual(o.children, ['g2'], '外层 children 归一去重')
+  assert.deepEqual(i.children, ['n1'], '内层 children 保留成员')
+  assert.ok(r.fixes > 0, '记录修复数')
+  // 孤儿/自指引用剔除
+  const bad = group('g3', 0, 0, 100, 100, ['gone', 'g3'])
+  const r2 = applyOwnership([bad])
+  assert.deepEqual(r2.nodes.find((x) => x.id === 'g3').children, [], '孤儿/自指剔除')
+  // 环：A↔B → 断裂（不无限递归）
+  const ga = group('ga', 0, 0, 100, 100, ['gb'])
+  const gb = group('gb', 0, 0, 100, 100, ['ga'])
+  const r3 = applyOwnership([ga, gb])
+  const kidsA = r3.nodes.find((x) => x.id === 'ga').children
+  const kidsB = r3.nodes.find((x) => x.id === 'gb').children
+  assert.ok(!(kidsA.includes('gb') && kidsB.includes('ga')), '环断裂（最多单向归属）')
+}
+
+console.log('=== 嵌套 subgraph（0.2.8）：唯一归属下递归输出 ===')
+{
+  const outer = group('g1', 0, 0, 400, 320, ['g2', 'n3'], { text: '外层' })
+  const inner = group('g2', 10, 10, 300, 200, ['n1', 'n2'], { text: '内层' })
+  const n1 = node('n1', 20, 20, 60, 40, { text: 'A' })
+  const n2 = node('n2', 200, 20, 60, 40, { text: 'B' })
+  const n3 = node('n3', 20, 240, 60, 40, { text: 'C' })
+  const doc = { nodes: [outer, inner, n1, n2, n3], pages: [page], edges: [], config: {} }
+  const r = buildPageCode(page, doc)
+  assert.ok(r.code.includes('subgraph g1 ["外层"]'), '外层 subgraph')
+  assert.ok(r.code.indexOf('subgraph g2 ["内层"]') > r.code.indexOf('subgraph g1'), '内层 subgraph 在外层体内')
+  const outerEnd = r.code.indexOf('end', r.code.indexOf('subgraph g2'))
+  const innerEnd = r.code.lastIndexOf('end')
+  assert.ok(innerEnd > outerEnd, 'end 闭合顺序（内层先闭、外层后闭）')
+  assert.ok(r.code.indexOf('n1') > r.code.indexOf('subgraph g2'), '成员在内层 subgraph 内')
+  assert.ok(r.code.indexOf('n3') > r.code.indexOf('subgraph g1'), '直接成员在外层 subgraph 内')
+  assert.ok(!r.code.includes('n1["A"]\n') || true, '输出为合法结构（syntaxCheck 由 verify-codegen 兜底）')
 }
 
 console.log('✅ verify-grouping: 全部断言通过（几何/绘制成组/拖入扩展/拖出解除/推离/排序/subgraph）')

@@ -1,6 +1,6 @@
 {
   "name": "dsh-flowchart",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "流程图：会话输入框内绘制 Mermaid 流程图，实时生成标准 Mermaid 代码，一键复制或插入 dsh 会话",
   "license": "MIT",
   "author": "FrankZhan",

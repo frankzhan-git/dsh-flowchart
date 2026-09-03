@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   decidePointerDown, updateDrag, settleDrag, arrowGhost, anchorDragGhost, computeMove, hoverCursorFor, hoverAnchorFor,
 } from '../src/core/interactions.js'
-import { edgeKindOf, anchorFromPoint, anchorToWorld, edgeGeom, groupBounds } from '../src/core/geometry.js'
+import { edgeKindOf, anchorFromPoint, anchorToWorld, edgeGeom, groupBounds, hitPriority, edgeLabelRect } from '../src/core/geometry.js'
 import { createPage, createNode, createEdge } from '../src/core/model.js'
 
 function mkDoc() {
@@ -335,6 +335,48 @@ const ctx = (doc, extra) => Object.assign({ doc, mode: 'select', zoom: 1, select
   assert.equal(hoverCursorFor(ctx(doc, { mode: 'draw' }), a.x + a.w - 1, a.y + 1), 'nesw-resize', '右上角 → nesw-resize')
   assert.equal(hoverCursorFor(ctx(doc, { mode: 'draw' }), a.x + 1, a.y + a.h - 1), 'nesw-resize', '左下角 → nesw-resize')
   assert.equal(hoverCursorFor(ctx(doc, { mode: 'draw' }), a.x + 1, a.y + 1), 'nwse-resize', '左上角 → nwse-resize')
+}
+
+// 13. 组内箭头命中优先级（0.2.8）：组合矩形内部不遮挡成员箭头 / 标签视觉带=命中带 / 绘制模式语义保持
+{
+  const doc = mkDoc()
+  const a = doc.nodes[0]
+  const b = doc.nodes[1]
+  const g = createNode(doc.pages[0].id, 'rectangle', 10, 10, 340, 200)
+  Object.assign(g, { group: true, children: [a.id, b.id], text: '组' })
+  doc.nodes.push(g)
+  const e = createEdge(a.pageId, a.id, { side: 'r', t: 0.5 }, b.id, { side: 'l', t: 0.5 }, 'solid')
+  doc.edges = [e]
+  const gm = edgeGeom(a, e.fromAnchor, b, e.toAnchor)
+  const mid = gm.mid // 边几何中点（a→b 为斜线，中点必须取几何计算）
+  // 组合矩形内部、成员箭头上 → 箭头命中（不再被组内部遮挡）
+  assert.equal(hitPriority(doc, mid.x, mid.y, 1).kind, 'edge', '组内箭头 → 箭头命中')
+  const dec = decidePointerDown(ctx(doc), mid.x, mid.y, 0, 0)
+  assert.equal(dec.kind, 'selectEdge', '组内箭头 → selectEdge（可选中/右击/删除/双击编辑）')
+  assert.deepEqual(dec.ids, [e.id], '选中目标 = 该箭头')
+  // 选中后：锚点手柄 → anchorDrag（端点可调）
+  const wa = anchorToWorld(a, e.fromAnchor)
+  const decA = decidePointerDown(ctx(doc, { selectedEdge: e.id }), wa.x, wa.y, 0, 0)
+  assert.equal(decA.kind, 'anchorDrag', '组内箭头选中后 → 锚点可拖动')
+  // 绘制模式：组内箭头命中 → 组内部语义（组移动；不误建节点）
+  const decD = decidePointerDown(ctx(doc, { mode: 'draw' }), mid.x, mid.y, 0, 0)
+  assert.equal(decD.kind, 'nodeMove', '绘制模式组内箭头 → 组移动（保持原语义）')
+  assert.equal(decD.drag.id, g.id, '移动目标 = 组合')
+  // 组边界仍优先于箭头（面命中：边带=箭头起笔）
+  const bd = decidePointerDown(ctx(doc), g.x + g.w / 2, g.y, 0, 0)
+  assert.equal(bd.kind, 'arrow', '组边带 → 箭头起笔（面优先）')
+  // 标签视觉带 = 命中带：标签矩形内（离路径 >8px）仍选中箭头
+  e.label = '标签文本'
+  const lg = edgeLabelRect(edgeGeom(a, e.fromAnchor, b, e.toAnchor), e.label)
+  assert.ok(lg, '标签矩形计算')
+  const decL = decidePointerDown(ctx(doc), lg.x + 2, lg.y + lg.h - 2, 0, 0)
+  assert.equal(decL.kind, 'selectEdge', '标签矩形内（路径外）→ 箭头命中')
+  assert.deepEqual(decL.ids, [e.id], '标签命中同一箭头')
+  // hover 光标：组内箭头 → pointer（可选中提示）
+  assert.equal(hoverCursorFor(ctx(doc), mid.x, mid.y), 'pointer', '组内箭头 hover → pointer')
+  // 多选框内箭头：选择模式点击组内箭头 → 选中箭头（多选框不吞箭头）
+  const decM = decidePointerDown(ctx(doc, { selectedIds: [a.id, b.id] }), mid.x, mid.y, 0, 0)
+  assert.equal(decM.kind, 'selectEdge', '多选状态下点击组内箭头 → 选中箭头')
 }
 
 console.log('✅ verify-interactions: 全部断言通过（模式即语义/箭头/锚点/四角resize/hover光标等）')

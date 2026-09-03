@@ -1,8 +1,10 @@
 // dsh-flowchart components/canvas/CanvasStage.js —— SVG 相机 + 图层编排（纯展示 + 事件转发）
 // 图层：页面底 → 箭头 → 节点 → 吸附/幽灵箭头 → 框选/多选 → 行内文本浮层（foreignObject）
+// 事件模型（0.2.8）：mousedown/move/up + 双击 + 右键全部在 svg 层按坐标决策（core/hitPriority）路由——
+//   组合矩形不再抢占其内成员/箭头的事件（此前透明矩形 DOM 盖住成员箭头，双击/右键落错目标）
 import React from 'react'
 import { CANVAS_W, CANVAS_H } from '../../core/model.js'
-import { edgeGeom, anchorToWorld, nodeById } from '../../core/geometry.js'
+import { edgeGeom, anchorToWorld, nodeById, toLocal, hitPriority } from '../../core/geometry.js'
 import { sortForRender } from '../../core/grouping.js'
 import { NodeRenderer } from './NodeRenderer.js'
 import { EdgeRenderer } from './EdgeRenderer.js'
@@ -31,6 +33,31 @@ export function CanvasStage(props) {
   const nodesOf = (pageId) => sortForRender(doc.nodes.filter((n) => n.pageId === pageId))
   const edgesOf = (pageId) => doc.edges.filter((e) => e.pageId === pageId)
 
+  // 坐标 → 命中 → 路由（双击：节点/箭头文本编辑、页面名；右键：节点/箭头/页面/画布菜单）
+  const worldOf = (ev) => {
+    const rect = svgRef.current.getBoundingClientRect()
+    return toLocal(ev, rect, zoom, pan)
+  }
+  const routeEdit = (ev) => {
+    const { x, y } = worldOf(ev)
+    const loc = hitPriority(doc, x, y, zoom)
+    if (loc && loc.kind === 'node') { ev.stopPropagation(); onStartEditNode(loc.node); return }
+    if (loc && loc.kind === 'edge') { ev.stopPropagation(); onStartEditEdge(loc.edge); return }
+    if (loc && loc.kind === 'pageTitle') { ev.stopPropagation(); onStartEditPage(ev, loc.page); return }
+    const pg = doc.pages.find((p) => x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h)
+    if (pg) { ev.stopPropagation(); onStartEditPage(ev, pg) }
+  }
+  const routeMenu = (ev) => {
+    const { x, y } = worldOf(ev)
+    const loc = hitPriority(doc, x, y, zoom)
+    if (loc && loc.kind === 'node') { onCtxNode(ev, loc.node); return }
+    if (loc && loc.kind === 'edge') { onCtxEdge(ev, loc.edge); return }
+    if (loc && loc.kind === 'pageTitle') { onCtxPage(ev, loc.page); return }
+    const pg = doc.pages.find((p) => x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h)
+    if (pg) { onCtxPage(ev, pg); return }
+    onCtxCanvas(ev)
+  }
+
   return el('div', { className: 'mm-canvas-view', ref: viewRef },
     el('svg', {
       ref: svgRef,
@@ -39,7 +66,8 @@ export function CanvasStage(props) {
       preserveAspectRatio: 'xMidYMid meet',
       style: { cursor: canvasCursor },
       onMouseDown, onMouseMove, onMouseUp, onMouseLeave,
-      onContextMenu: (ev) => { ev.preventDefault(); onCtxCanvas(ev) },
+      onDoubleClick: routeEdit,
+      onContextMenu: (ev) => { ev.preventDefault(); routeMenu(ev) },
     },
       el('defs', null,
         el('marker', {
@@ -54,12 +82,7 @@ export function CanvasStage(props) {
         key: page.id,
         className: 'mm-page-group' + (selectedPage === page.id ? ' mm-page-selected' : ''),
       },
-        el('rect', {
-          className: 'mm-page',
-          x: page.x, y: page.y, width: page.w, height: page.h,
-          onDoubleClick: (ev) => { ev.stopPropagation(); onStartEditPage(ev, page) },
-          onContextMenu: (ev) => { ev.preventDefault(); ev.stopPropagation(); onCtxPage(ev, page) },
-        }),
+        el('rect', { className: 'mm-page', x: page.x, y: page.y, width: page.w, height: page.h }),
         el('rect', { className: 'mm-page-chip', x: page.x + 4, y: page.y + 4, width: 118, height: 16 }),
         el('text', { className: 'mm-page-name', x: page.x + 10, y: page.y + 15 }, page.name || '未命名页面'),
         el('text', { className: 'mm-page-dir', x: page.x + page.w - 10, y: page.y + 15, textAnchor: 'end' },
@@ -68,8 +91,6 @@ export function CanvasStage(props) {
           key: e.id, edge: e, doc,
           selected: selectedEdge === e.id,
           editing,
-          onStartEdit: onStartEditEdge,
-          onCtxEdge: onCtxEdge,
         })),
         nodesOf(page.id).map((n) => el(NodeRenderer, {
           key: n.id, node: n, doc,
@@ -79,9 +100,6 @@ export function CanvasStage(props) {
           groupHover: !!(drag && drag.groupHover === n.id),
           creating: !!(drag && drag.mode === 'nodeCreate' && drag.tmpId === n.id),
           createCover: !!(drag && drag.cover),
-          onStartEdit: onStartEditNode,
-          onCtxMenu: onCtxNode,
-          onEditChange, onEditDone,
         })),
       )),
       // 选中箭头的首尾锚点圆点（节点层之上渲染，不被控件遮挡；命中由 core 决策计算）

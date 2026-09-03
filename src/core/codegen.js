@@ -6,7 +6,7 @@ import { shapeOf } from './shapes.js'
 import { edgeKindOf } from './edge-kinds.js'
 import { CONFIG_DEFAULTS, collectNonDefaultConfig } from './config-schema.js'
 import { pageTypeOf } from './page-types.js'
-import { isGroup } from './grouping.js'
+import { isGroup, ownershipMap } from './grouping.js'
 
 // ---------- normalize ----------
 
@@ -44,9 +44,20 @@ export function buildPageCode(page, doc) {
   const nodeById = new Map()
   const lines = []
   const byId = new Map(nodes.map((n) => [n.id, n]))
-  // 组合（P8）：组节点 → mermaid subgraph（成员行递归输出；组 id 可直接参与边）
+  // 组合（P8）：组节点 → mermaid subgraph（成员行递归输出；组 id 可直接参与边）。
+  // 唯一归属（0.2.8/C1 防御）：任何数据形态先解析「每成员至多一个父组」（歧义取最深父组），
+  // 再按解析结果递归输出——修复「覆盖建组重复收编成员 → 成员在子图外/嵌套随数组序漂移」
+  const owned = ownershipMap(nodes)
+  let normalized = false
+  for (const n of nodes) {
+    if (isGroup(n) && (n.children || []).some((c) => owned.has(c) && owned.get(c) !== n.id)) normalized = true
+  }
   const emitted = new Set()
-  const groupChildren = (g) => (g.children || []).map((id) => byId.get(id)).filter(Boolean)
+  // 唯一归属解析后的「直接成员」：先按归属过滤 id，再映射回节点对象（成员顺序 = children 序）
+  const groupChildren = (g) => (g.children || [])
+    .filter((id) => owned.get(id) === g.id)
+    .map((id) => byId.get(id))
+    .filter(Boolean)
   const isMemberOfAny = (id) => nodes.some((g) => isGroup(g) && (g.children || []).includes(id))
   const emitGroup = (g, indent) => {
     lines.push(indent + 'subgraph ' + sanitizeNodeId(g.id) + ' [' + escapeLabel(g.text, htmlLabels) + ']')
@@ -83,6 +94,10 @@ export function buildPageCode(page, doc) {
     }
     const label = typeof e.label === 'string' && e.label.length ? escapeLabel(e.label, htmlLabels) : null
     lines.push('    ' + edgeLine(from, to, e.kind, label))
+  }
+
+  if (normalized) {
+    issues.push({ level: 'info', text: '组合成员的嵌套归属已按唯一归属归一（每成员仅一个父组）' })
   }
 
   // 空页面：不输出（节点/边均为空 → 无图内容）

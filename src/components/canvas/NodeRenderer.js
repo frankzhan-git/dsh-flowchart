@@ -1,6 +1,6 @@
 // dsh-flowchart components/canvas/NodeRenderer.js —— 节点渲染（形状注册表分派；纯展示）
-// 事件约定：mousedown 不拦截（冒泡到 svg 由 core/interactions 统一决策——选择/箭头/移动），
-//           本组件只处理双击（文本编辑）与右键（形状菜单）
+// 事件模型（0.2.8）：选择/双击/右键全部由 svg 层按坐标决策路由（core/hitPriority）——
+//   本组件纯展示，不注册任何指针/菜单事件
 import React from 'react'
 import { shapeParts } from '../../core/shapes.js'
 
@@ -21,7 +21,7 @@ const LINE_H = 14
 const GROUP_TEXT_PAD = 8
 
 export function NodeRenderer(props) {
-  const { node, selected, editing, drawMode, groupHover, creating, createCover, onStartEdit, onCtxMenu } = props
+  const { node, selected, editing, drawMode, groupHover, creating, createCover, onEditChange, onEditDone } = props
   const isEditing = editing && editing.type === 'node' && editing.id === node.id
   const lines = String(node.text || '').split('\n')
   // 普通控件多行垂直居中：<text> 锚定节点中心（dominant-baseline: central），逐行 tspan 从上到下排列；
@@ -39,12 +39,7 @@ export function NodeRenderer(props) {
     + (groupHover ? ' mm-node-group-hover' : '')
     + (creating ? ' mm-node-create' : '')
     + (creating && createCover ? ' mm-node-create-cover' : '')
-  return el('g', {
-    transform: translate,
-    className: cls,
-    onDoubleClick: (ev) => { ev.stopPropagation(); onStartEdit(node) },
-    onContextMenu: (ev) => { ev.preventDefault(); ev.stopPropagation(); onCtxMenu(ev, node) },
-  },
+  return el('g', { transform: translate, className: cls },
     el('g', { className: 'mm-node-body' }, ...shapeEls(node.shape, node.w, node.h)),
     !isEditing ? el('text', { className: 'mm-node-label', x: node.w / 2, y: textY },
       lines.map((ln, i) => el('tspan', { key: i, x: node.w / 2, dy: i === 0 ? firstDy : LINE_H }, ln))) : null,

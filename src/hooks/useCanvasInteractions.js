@@ -191,6 +191,10 @@ export function useCanvasInteractions(deps) {
       const gp = r.groupPatch
       setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => (n.id === gp.id ? gp : n)) }))
     }
+    if (r.unbind && r.unbind.length) {
+      const ub = new Map(r.unbind.map((b) => [b.id, b.children]))
+      setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => (ub.has(n.id) ? { ...n, children: ub.get(n.id) } : n)) }))
+    }
     if (r.adjustments && r.adjustments.length) {
       const adj = new Map(r.adjustments.map((a) => [a.id, a]))
       setDoc((d) => ({ ...d, nodes: d.nodes.map((n) => {

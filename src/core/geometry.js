@@ -3,7 +3,7 @@
 //       锚点换算（anchorFromPoint/anchorToWorld）、箭头几何（edgeKindOf/edgeGeom/edgeHitDistance）、
 //       包围盒/框选/吸附（groupBounds/containsNode/pickNodes）。全部纯函数，零 React/DSH。
 import { CANVAS_W, CANVAS_H } from './model.js'
-import { sortForRender } from './grouping.js'
+import { sortForRender, isGroup } from './grouping.js'
 
 // ---------- 相机（无限画布：SVG 固定视口，viewBox 随 zoom/pan 变化） ----------
 
@@ -98,24 +98,33 @@ export function hitCornerOf(el, x, y, zoom) {
 
 // 统一命中（自顶向下，与渲染排序 sortForRender 一致——组合先画（底层）、成员后画（上层）：
 //   最后画的先命中，所以组成员优先于组合矩形、外层普通节点优先于组合）：
-//   节点层（sortForRender 反序 = 视觉上层）：内部 / 边带 / 右下角；返回 { kind:'node', node, mode, side }
-//   箭头层（节点之下；命中 = 路径 8/zoom 内）：{ kind:'edge', edge }
-//   页面标题条（页面左上角 120×18 墨迹条，页面移动/重命名入口）：{ kind:'pageTitle', page }
+//   命中分层（0.2.8 修复：组合矩形内部不再遮挡成员箭头）：
+//   1) 节点表面（角手柄/边带——含组自身边界；A1：面优先于箭头）
+//   2) 非组节点内部（普通形状仍优先于其下箭头——A1）
+//   3) 箭头（路径 8/zoom 内或标签矩形内——组合内部/标签视觉区均可点中）
+//   4) 组内部（容器空白区：最后兜底——只用于选中/移动组本身，不遮挡成员与箭头）
+//   5) 页面标题条 / 页面边带四角
 export function hitPriority(doc, x, y, zoom) {
   const nodes = doc.nodes || []
   const edges = doc.edges || []
   const ordered = sortForRender(nodes)
+  // 1) 节点表面（最后画的先命中）：内部 / 边带 / 右下角
   for (let i = ordered.length - 1; i >= 0; i--) {
     const n = ordered[i]
     const corner = hitCornerOf(n, x, y, zoom)
     if (corner) return { kind: 'node', node: n, mode: 'corner', side: corner }
     const edge = hitEdgeOf(n, x, y, zoom)
     if (edge) return { kind: 'node', node: n, mode: 'edge', side: edge }
+  }
+  // 2) 非组节点内部（成员绘制在组上方；普通形状优先于其下箭头——A1）
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const n = ordered[i]
+    if (isGroup(n)) continue
     if (x >= n.x && x <= n.x + n.w && y >= n.y && y <= n.y + n.h) {
       return { kind: 'node', node: n, mode: 'inside' }
     }
   }
-  // 箭头命中（仅选择模式使用；命中靠近路径即选中）
+  // 3) 箭头命中（路径临近或标签矩形内）
   for (let i = edges.length - 1; i >= 0; i--) {
     const e = edges[i]
     const a = nodeById(doc, e.from)
@@ -124,8 +133,22 @@ export function hitPriority(doc, x, y, zoom) {
     const ta = e.toAnchor || { side: 'l', t: 0.5 }
     if (!a || !b) continue
     if (edgeHitDistance(a, fa, b, ta, x, y) <= 8 / zoom) return { kind: 'edge', edge: e }
+    if (typeof e.label === 'string' && e.label.length) {
+      const lg = edgeLabelRect(edgeGeom(a, fa, b, ta), e.label)
+      if (lg && x >= lg.x && x <= lg.x + lg.w && y >= lg.y && y <= lg.y + lg.h) {
+        return { kind: 'edge', edge: e }
+      }
+    }
   }
-  // 页面标题条（画在最上层，方便找到页面）
+  // 4) 组内部（容器空白区兜底：点中组主体 = 选中/移动组）
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const n = ordered[i]
+    if (!isGroup(n)) continue
+    if (x >= n.x && x <= n.x + n.w && y >= n.y && y <= n.y + n.h) {
+      return { kind: 'node', node: n, mode: 'inside' }
+    }
+  }
+  // 5) 页面标题条（画在最上层，方便找到页面）
   for (let i = (doc.pages || []).length - 1; i >= 0; i--) {
     const p = doc.pages[i]
     const c = pageChip(p)
@@ -140,6 +163,20 @@ export function hitPriority(doc, x, y, zoom) {
     if (corner) return { kind: 'pageCorner', page: p, side: corner }
     const pe = pageEdgeOf(p, x, y, zoom)
     if (pe) return { kind: 'pageEdge', page: p, side: pe }
+  }
+  return null
+}
+
+// 组内部命中（仅组合的 inside——绘制模式箭头命中后的兜底语义：保持「组内空白 = 组移动」）
+export function hitGroupInside(doc, x, y, zoom) {
+  const nodes = doc.nodes || []
+  const ordered = sortForRender(nodes)
+  for (let i = ordered.length - 1; i >= 0; i--) {
+    const n = ordered[i]
+    if (!isGroup(n)) continue
+    if (x >= n.x && x <= n.x + n.w && y >= n.y && y <= n.y + n.h) {
+      return { kind: 'node', node: n, mode: 'inside' }
+    }
   }
   return null
 }
@@ -240,6 +277,13 @@ export function edgeGeom(fromNode, fromAnchor, toNode, toAnchor) {
     y: (p0.y + 3 * c1.y + 3 * c2.y + p1.y) / 8,
   }
   return { kind, d, mid }
+}
+
+// 箭头标签背景矩形（视觉带 = 命中带：渲染与命中共用单一计算，避免「点中标签却落空」）
+export function edgeLabelRect(g, label) {
+  if (!label || typeof label !== 'string' || !label.length || !g || !g.mid) return null
+  const w = label.length * 6.4 + 10
+  return { x: g.mid.x - w / 2, y: g.mid.y - 10, w, h: 20 }
 }
 
 function sideNormal(side) {
